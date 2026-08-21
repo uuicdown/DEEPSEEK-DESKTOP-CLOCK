@@ -1,0 +1,6 @@
+{
+  "name": "DeepSeek 桌面时钟",
+  "description": "桌面时钟软件，支持时区时间显示、峰谷时段（梁文锋/梁文谷）状态切换以及DeepSeek Token实时价格看板与计算器。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

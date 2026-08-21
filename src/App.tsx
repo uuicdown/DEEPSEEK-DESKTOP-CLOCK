@@ -14,6 +14,15 @@ import { TokenPriceBoard } from './components/TokenPriceBoard';
 import { FullscreenClockModal } from './components/FullscreenClockModal';
 import { MiniFloatingClock } from './components/MiniFloatingClock';
 import { TRANSLATIONS } from './i18n/translations';
+import { 
+  isTauriEnv, 
+  setupDesktopTrayListeners, 
+  applyMiniClockWindow, 
+  restoreMainDashboardWindow, 
+  requestTrueFullscreen, 
+  exitTrueFullscreen,
+  exitApplication
+} from './utils/tauriWindow';
 
 export default function App() {
   const [now, setNow] = useState<Date>(new Date());
@@ -28,6 +37,32 @@ export default function App() {
 
   const prevPhaseRef = useRef<DeepSeekPhase | null>(null);
   const prevHourRef = useRef<number | null>(null);
+
+  // Setup Tauri Desktop Tray Event Listeners
+  useEffect(() => {
+    const unregister = setupDesktopTrayListeners({
+      onShowMain: () => {
+        setIsMinimized(false);
+        setIsFullscreen(false);
+        restoreMainDashboardWindow();
+      },
+      onShowFullscreen: () => {
+        setIsMinimized(false);
+        setIsFullscreen(true);
+        requestTrueFullscreen();
+      },
+      onShowMini: () => {
+        setIsFullscreen(false);
+        setIsMinimized(true);
+        applyMiniClockWindow();
+      },
+      onExit: () => {
+        exitApplication();
+      },
+    });
+
+    return () => unregister();
+  }, []);
 
   // Real-time ticking interval
   useEffect(() => {
@@ -72,6 +107,26 @@ export default function App() {
     }
   };
 
+  const handleOpenFullscreen = () => {
+    setIsFullscreen(true);
+    requestTrueFullscreen();
+  };
+
+  const handleCloseFullscreen = () => {
+    setIsFullscreen(false);
+    exitTrueFullscreen();
+  };
+
+  const handleMinimizeToMini = () => {
+    setIsMinimized(true);
+    applyMiniClockWindow();
+  };
+
+  const handleRestoreMain = () => {
+    setIsMinimized(false);
+    restoreMainDashboardWindow();
+  };
+
   return (
     <div className={`min-h-screen w-full bg-gradient-to-b ${currentTheme.bgClass} flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 font-sans selection:bg-blue-600 selection:text-white transition-colors duration-500`}>
       <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
@@ -90,8 +145,8 @@ export default function App() {
           onToggleMs={() => setShowMs(!showMs)}
           soundEnabled={soundEnabled}
           onToggleSound={handleToggleSound}
-          onOpenFullscreen={() => setIsFullscreen(true)}
-          onMinimizeToMini={() => setIsMinimized(true)}
+          onOpenFullscreen={handleOpenFullscreen}
+          onMinimizeToMini={handleMinimizeToMini}
           phaseInfo={phaseInfo}
         />
 
@@ -133,14 +188,14 @@ export default function App() {
           phaseInfo={phaseInfo}
           soundEnabled={soundEnabled}
           onToggleSound={handleToggleSound}
-          onRestoreMain={() => setIsMinimized(false)}
+          onRestoreMain={handleRestoreMain}
         />
       )}
 
       {/* Fullscreen Zen Clock Modal */}
       <FullscreenClockModal
         isOpen={isFullscreen}
-        onClose={() => setIsFullscreen(false)}
+        onClose={handleCloseFullscreen}
         now={now}
         currentTimezone={currentTimezone}
         currentTheme={currentTheme}
@@ -154,3 +209,4 @@ export default function App() {
     </div>
   );
 }
+

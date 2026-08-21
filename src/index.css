@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/* Hide all browser scrollbars for clean immersive experience */
+html, body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+  width: 0;
+  height: 0;
+}
+
+/* Fullscreen Immersive Mode */
+body.fullscreen-mode-active {
+  overflow: hidden !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Desktop Tauri Drag Region */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+button, input, select, a {
+  -webkit-app-region: no-drag;
+}

@@ -10,12 +10,14 @@ import {
   ChevronDown, 
   Calendar, 
   Languages, 
-  Check
+  Check,
+  Tv
 } from 'lucide-react';
 import { AVAILABLE_TIMEZONES, THEMES } from '../data/deepseekPrices';
 import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
 import { formatTimeInZone, getLunarInfo } from '../utils/timeUtils';
 import { TRANSLATIONS } from '../i18n/translations';
+import appIconImg from '../assets/images/deepseek_clock_icon_1787300567789.jpg';
 
 interface ClockHeaderProps {
   now: Date;
@@ -95,15 +97,19 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
   return (
     <header className="relative w-full mb-6">
       {/* Top Utility Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/60">
-        {/* Left: Brand + Timezone + Language Switcher */}
+      <div 
+        data-tauri-drag-region
+        className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/60"
+      >
+        {/* Left: Brand with App Icon + Timezone + Language Switcher */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs font-semibold whitespace-nowrap">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-            <span>{t.appName}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900/90 border border-blue-500/30 text-blue-400 text-xs font-semibold whitespace-nowrap shadow-md">
+            <img 
+              src={appIconImg} 
+              alt="DeepSeek Clock Logo" 
+              className="w-5 h-5 rounded-lg object-cover ring-1 ring-cyan-400/40 shadow"
+            />
+            <span className="font-bold text-slate-100">{t.appName}</span>
           </div>
 
           {/* Timezone Switcher Dropdown */}
@@ -115,7 +121,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                 setShowThemeDropdown(false);
                 setShowLangDropdown(false);
               }}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-200 transition-all font-medium cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-200 transition-all font-medium cursor-pointer shadow-sm"
             >
               <Globe className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
               <span className="max-w-[100px] sm:max-w-none truncate">{tzDisplayCity}</span>
@@ -300,7 +306,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             id="fullscreen-clock-button"
             onClick={onOpenFullscreen}
             title={t.fullscreenTitle}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all cursor-pointer whitespace-nowrap hover:scale-105"
           >
             <Maximize2 className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="hidden sm:inline">{t.fullscreenBtn}</span>
@@ -311,7 +317,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             id="minimize-to-mini-button"
             onClick={onMinimizeToMini}
             title={t.minimizeTitle}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-300 hover:text-white text-xs font-semibold shadow transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-300 hover:text-white text-xs font-semibold shadow transition-all cursor-pointer whitespace-nowrap hover:scale-105"
           >
             <Minimize2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
             <span className="hidden sm:inline">{t.minimizeBtn}</span>

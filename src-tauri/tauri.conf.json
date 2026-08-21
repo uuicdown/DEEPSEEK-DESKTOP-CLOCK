@@ -1,0 +1,89 @@
+{
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:3000",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "DeepSeekClock",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "bundle": {
+      "active": true,
+      "category": "Utility",
+      "copyright": "Copyright © 2026 Soren. All rights reserved.",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.Soren.deepseekclock",
+      "longDescription": "DeepSeek 桌面时钟 · 梁文峰/梁文谷峰谷时段追踪与 Token 计费看板",
+      "macOS": {
+        "frameworks": [],
+        "minimumSystemVersion": "",
+        "exceptionDomain": "",
+        "signingIdentity": null,
+        "entitlements": null
+      },
+      "resources": [],
+      "shortDescription": "DeepSeek 桌面时钟",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "allowlist": {
+      "all": true,
+      "window": {
+        "all": true,
+        "close": true,
+        "hide": true,
+        "show": true,
+        "maximize": true,
+        "minimize": true,
+        "unmaximize": true,
+        "unminimize": true,
+        "startDragging": true,
+        "setFullscreen": true,
+        "setAlwaysOnTop": true,
+        "setSize": true,
+        "setMinSize": true,
+        "setMaxSize": true,
+        "setResizable": true,
+        "setTitle": true,
+        "setPosition": true,
+        "center": true
+      }
+    },
+    "systemTray": {
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": true
+    },
+    "windows": [
+      {
+        "title": "DeepSeek 桌面时钟 · 梁文峰/梁文谷时钟看板",
+        "width": 1100,
+        "height": 820,
+        "minWidth": 300,
+        "minHeight": 150,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "center": true,
+        "alwaysOnTop": false,
+        "transparent": false
+      }
+    ]
+  }
+}

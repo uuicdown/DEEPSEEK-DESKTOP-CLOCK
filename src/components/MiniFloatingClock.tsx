@@ -212,20 +212,31 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       ref={clockRef}
       id="mini-floating-clock-container"
       data-tauri-drag-region
-      style={{
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-        zIndex: 9999,
-        touchAction: 'none',
-        willChange: 'transform',
-      }}
+      style={
+        isTauri
+          ? {
+              width: '100vw',
+              height: '100vh',
+              position: 'fixed',
+              left: 0,
+              top: 0,
+              zIndex: 9999,
+            }
+          : {
+              position: 'fixed',
+              left: 0,
+              top: 0,
+              transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+              zIndex: 9999,
+              touchAction: 'none',
+              willChange: 'transform',
+            }
+      }
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className={`select-none shadow-2xl rounded-2xl border backdrop-blur-2xl transition-all duration-300 ${
+      className={`select-none shadow-2xl ${isTauri ? 'rounded-none h-screen w-screen border-none' : 'rounded-2xl border'} backdrop-blur-2xl transition-all duration-300 ${
         isLight
           ? isGu
             ? 'bg-white/95 text-slate-800 border-emerald-400/60 shadow-[0_10px_35px_-5px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/30'
@@ -233,13 +244,13 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
           : isGu
             ? `${currentTheme.cardBgClass} ${currentTheme.textColor} border-emerald-500/50 shadow-[0_10px_35px_-5px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/30`
             : `${currentTheme.cardBgClass} ${currentTheme.textColor} border-amber-500/50 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/30`
-      } ${isDragging ? 'cursor-grabbing scale-[1.02] ring-2 ring-blue-500 shadow-blue-500/40' : 'cursor-grab'} animate-in fade-in duration-200`}
+      } ${!isTauri && isDragging ? 'cursor-grabbing scale-[1.02] ring-2 ring-blue-500 shadow-blue-500/40' : !isTauri ? 'cursor-grab' : ''} animate-in fade-in duration-200`}
     >
       {/* Mini Title Bar / Drag handle */}
       <div 
         id="mini-clock-drag-bar"
         data-tauri-drag-region
-        className={`flex items-center justify-between px-3 py-1.5 border-b text-[10px] rounded-t-2xl gap-2 transition-colors ${
+        className={`flex items-center justify-between px-3 py-1.5 border-b text-[10px] ${isTauri ? 'rounded-none' : 'rounded-t-2xl'} gap-2 transition-colors cursor-move ${
           isLight 
             ? 'border-slate-200 text-slate-600 bg-slate-100/90' 
             : 'border-slate-800/80 text-slate-400 bg-slate-900/90'
@@ -257,15 +268,17 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
           <span className="truncate">{t.miniClock}</span>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={handleResetPosition}
-            title={language === 'zh' ? '靠右下停靠' : 'Dock Bottom-Right'}
-            className={`p-1 rounded transition-colors cursor-pointer ${
-              isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <RotateCcw className="w-2.5 h-2.5" />
-          </button>
+          {!isTauri && (
+            <button
+              onClick={handleResetPosition}
+              title={language === 'zh' ? '靠右下停靠' : 'Dock Bottom-Right'}
+              className={`p-1 rounded transition-colors cursor-pointer ${
+                isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <RotateCcw className="w-2.5 h-2.5" />
+            </button>
+          )}
           <button
             onClick={() => setCompactMode(!compactMode)}
             title={compactMode ? (language === 'zh' ? '展开模式' : 'Expand') : (language === 'zh' ? '极简超小模式' : 'Compact')}

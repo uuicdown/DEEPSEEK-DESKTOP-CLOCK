@@ -108,6 +108,7 @@ export default function App() {
   };
 
   const handleOpenFullscreen = () => {
+    setIsMinimized(false);
     setIsFullscreen(true);
     requestTrueFullscreen();
   };
@@ -118,6 +119,8 @@ export default function App() {
   };
 
   const handleMinimizeToMini = () => {
+    setIsFullscreen(false);
+    exitTrueFullscreen();
     setIsMinimized(true);
     applyMiniClockWindow();
   };
@@ -129,52 +132,55 @@ export default function App() {
 
   return (
     <div className={`min-h-screen w-full bg-gradient-to-b ${currentTheme.bgClass} flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 font-sans selection:bg-blue-600 selection:text-white transition-colors duration-500`}>
-      <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
-        {/* Top Section: Timezone + Language + Date + Time Clock Header */}
-        <ClockHeader
-          now={now}
-          currentTimezone={currentTimezone}
-          onTimezoneChange={setCurrentTimezone}
-          currentTheme={currentTheme}
-          onThemeChange={setCurrentTheme}
-          language={language}
-          onLanguageChange={setLanguage}
-          use24h={use24h}
-          onToggle24h={() => setUse24h(!use24h)}
-          showMs={showMs}
-          onToggleMs={() => setShowMs(!showMs)}
-          soundEnabled={soundEnabled}
-          onToggleSound={handleToggleSound}
-          onOpenFullscreen={handleOpenFullscreen}
-          onMinimizeToMini={handleMinimizeToMini}
-          phaseInfo={phaseInfo}
-        />
+      {/* Main Big Dashboard - Hidden when Minimized into Floating Gadget */}
+      {!isMinimized && (
+        <div className="w-full max-w-6xl mx-auto flex flex-col items-center animate-in fade-in duration-300">
+          {/* Top Section: Timezone + Language + Date + Time Clock Header */}
+          <ClockHeader
+            now={now}
+            currentTimezone={currentTimezone}
+            onTimezoneChange={setCurrentTimezone}
+            currentTheme={currentTheme}
+            onThemeChange={setCurrentTheme}
+            language={language}
+            onLanguageChange={setLanguage}
+            use24h={use24h}
+            onToggle24h={() => setUse24h(!use24h)}
+            showMs={showMs}
+            onToggleMs={() => setShowMs(!showMs)}
+            soundEnabled={soundEnabled}
+            onToggleSound={handleToggleSound}
+            onOpenFullscreen={handleOpenFullscreen}
+            onMinimizeToMini={handleMinimizeToMini}
+            phaseInfo={phaseInfo}
+          />
 
-        {/* Middle Section: 梁文峰 (峰时) / 梁文谷 (谷时) Real-time Status Card */}
-        <LiangStatusCard
-          phaseInfo={phaseInfo}
-          currentTheme={currentTheme}
-          language={language}
-          currentTimezone={currentTimezone}
-        />
+          {/* Middle Section: 梁文峰 (峰时) / 梁文谷 (谷时) Real-time Status Card */}
+          <LiangStatusCard
+            phaseInfo={phaseInfo}
+            currentTheme={currentTheme}
+            language={language}
+            currentTimezone={currentTimezone}
+          />
 
-        {/* Bottom Section: DeepSeek Token Price Board & Calculator */}
-        <TokenPriceBoard
-          phaseInfo={phaseInfo}
-          currentTheme={currentTheme}
-          language={language}
-        />
+          {/* Bottom Section: DeepSeek Token Price Board & Calculator */}
+          <TokenPriceBoard
+            phaseInfo={phaseInfo}
+            currentTheme={currentTheme}
+            language={language}
+          />
 
-        {/* Footer info */}
-        <footer className="w-full mt-10 py-4 border-t border-slate-800/60 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>
-            <span>{t.footerNote}</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <span>{t.footerBenchmark}</span>
-          </div>
-        </footer>
-      </div>
+          {/* Footer info */}
+          <footer className="w-full mt-10 py-4 border-t border-slate-800/60 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div>
+              <span>{t.footerNote}</span>
+            </div>
+            <div className="flex items-center gap-3 text-slate-400">
+              <span>{t.footerBenchmark}</span>
+            </div>
+          </footer>
+        </div>
+      )}
 
       {/* When Minimized: Floating Mini Clock Gadget */}
       {isMinimized && (

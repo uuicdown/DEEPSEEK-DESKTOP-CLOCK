@@ -97,10 +97,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
   return (
     <header className="relative w-full mb-6">
       {/* Top Utility Bar */}
-      <div 
-        data-tauri-drag-region
-        className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/60"
-      >
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/60">
         {/* Left: Brand with App Icon + Timezone + Language Switcher */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900/90 border border-blue-500/30 text-blue-400 text-xs font-semibold whitespace-nowrap shadow-md">

@@ -4,6 +4,10 @@
 > 实时精准感知「梁文峰（高峰 100% 原价时段）」与「梁文谷（夜间、午间错峰及周末 5 折特惠时段）」，助力 API 批量推理与微调成本直降 50%。
 
 ---
+# 预览
+<img width="1918" height="1011" alt="image" src="https://github.com/user-attachments/assets/e63eef96-0df0-49fb-b75d-53bd010876ad" />
+
+<img width="1918" height="654" alt="image" src="https://github.com/user-attachments/assets/583260e2-3d9e-462c-95d5-0d6b7623ab4b" />
 
 ## 📊 官方峰谷分时计价参考表
 

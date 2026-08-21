@@ -1,48 +1,140 @@
 import React, { useState } from 'react';
 import { 
-  Zap, 
   Moon, 
   Sun, 
   Sparkles, 
   Info, 
-  Clock, 
-  ArrowRight, 
+  Layers, 
+  ChevronDown, 
+  ChevronUp, 
   TrendingDown, 
-  ShieldCheck, 
-  Layers,
-  ChevronDown,
-  ChevronUp
+  Timer 
 } from 'lucide-react';
-import { ClockTheme, PhaseInfo } from '../types';
+import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface LiangStatusCardProps {
   phaseInfo: PhaseInfo;
   currentTheme: ClockTheme;
+  language: Language;
+  currentTimezone?: TimezoneOption;
 }
 
 export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
   phaseInfo,
-  currentTheme,
+  language,
+  currentTimezone,
 }) => {
   const [showMemeInfo, setShowMemeInfo] = useState(false);
+  const t = TRANSLATIONS[language];
   const isGu = phaseInfo.currentPhase === 'gu';
-  const isWeekend = phaseInfo.isWeekend;
+  const beijingHour = phaseInfo.beijingHour + phaseInfo.beijingMinute / 60;
+  const currentTz = currentTimezone?.timeZone || 'Asia/Shanghai';
 
-  // Calculate timeline percentages for 24-hour visualization
-  // 00:00 - 09:00 = 9h (37.5%) [谷时]
-  // 09:00 - 12:00 = 3h (12.5%) [峰时]
-  // 12:00 - 14:00 = 2h (8.333%) [谷时]
-  // 14:00 - 18:00 = 4h (16.667%) [峰时]
-  // 18:00 - 24:00 = 6h (25.0%) [谷时]
-  const guNightMorningPercent = (9 / 24) * 100;
-  const fengMorningPercent = (3 / 24) * 100;
-  const guNoonPercent = (2 / 24) * 100;
-  const fengAfternoonPercent = (4 / 24) * 100;
-  const guNightPercent = (6 / 24) * 100;
+  // Helper to determine day/night status in the user's selected timezone for each Beijing time window
+  const getSegmentDayNight = (midBeijingHour: number, type: 'feng' | 'gu') => {
+    const utcHour = midBeijingHour - 8;
+    const sampleDate = new Date(Date.UTC(2026, 7, 20, Math.floor(utcHour), Math.round((utcHour % 1) * 60)));
+    
+    let localHour = 0;
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: currentTz,
+        hour: 'numeric',
+        hourCycle: 'h23',
+      }).formatToParts(sampleDate);
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      localHour = hourPart ? parseInt(hourPart, 10) : 0;
+    } catch {
+      localHour = Math.floor(midBeijingHour);
+    }
+
+    const isDay = localHour >= 6 && localHour < 18;
+    
+    let label = '';
+    if (language === 'zh') {
+      label = `${isDay ? '日' : '夜'}${type === 'feng' ? '峰' : '谷'}`;
+    } else if (language === 'en') {
+      label = `${isDay ? 'Day' : 'Night'} ${type === 'feng' ? 'Peak' : 'Valley'}`;
+    } else {
+      label = `${isDay ? 'День' : 'Ночь'} ${type === 'feng' ? 'Пик' : 'Скидка'}`;
+    }
+
+    return { isDay, label };
+  };
+
+  const seg1Dn = getSegmentDayNight(4.5, 'gu');
+  const seg2Dn = getSegmentDayNight(10.5, 'feng');
+  const seg3Dn = getSegmentDayNight(13.0, 'gu');
+  const seg4Dn = getSegmentDayNight(16.0, 'feng');
+  const seg5Dn = getSegmentDayNight(21.0, 'gu');
+
+  // Single clean continuous 24-Hour Timeline Segments (UTC+8):
+  const segments = [
+    {
+      id: 'gu-1',
+      widthPercent: 37.5,
+      type: 'gu' as const,
+      isDay: seg1Dn.isDay,
+      label: seg1Dn.label,
+      isActive: beijingHour >= 0 && beijingHour < 9,
+    },
+    {
+      id: 'feng-1',
+      widthPercent: 12.5,
+      type: 'feng' as const,
+      isDay: seg2Dn.isDay,
+      label: seg2Dn.label,
+      isActive: beijingHour >= 9 && beijingHour < 12,
+    },
+    {
+      id: 'gu-2',
+      widthPercent: 8.333,
+      type: 'gu' as const,
+      isDay: seg3Dn.isDay,
+      label: seg3Dn.label,
+      isActive: beijingHour >= 12 && beijingHour < 14,
+    },
+    {
+      id: 'feng-2',
+      widthPercent: 16.667,
+      type: 'feng' as const,
+      isDay: seg4Dn.isDay,
+      label: seg4Dn.label,
+      isActive: beijingHour >= 14 && beijingHour < 18,
+    },
+    {
+      id: 'gu-3',
+      widthPercent: 25.0,
+      type: 'gu' as const,
+      isDay: seg5Dn.isDay,
+      label: seg5Dn.label,
+      isActive: beijingHour >= 18 && beijingHour < 24,
+    },
+  ];
+
+  // Ruler timestamp markings below the single timeline
+  const rulerTicks = [
+    { label: t.tick0, percent: 0, type: 'default' },
+    { label: t.tick9, percent: 37.5, type: 'feng' },
+    { label: t.tick12, percent: 50.0, type: 'gu' },
+    { label: t.tick14, percent: 58.333, type: 'feng' },
+    { label: t.tick18, percent: 75.0, type: 'gu' },
+    { label: t.tick24, percent: 100, type: 'default' },
+  ];
+
+  // Current Needle Position
+  const needlePercent = Math.min(100, Math.max(0, phaseInfo.dayProgressPercent));
+  let tagTranslate = '-translate-x-1/2';
+  if (needlePercent < 12) {
+    tagTranslate = 'translate-x-0';
+  } else if (needlePercent > 88) {
+    tagTranslate = '-translate-x-full';
+  }
 
   return (
     <section className="relative w-full mb-6">
-      {/* Main Status Hero Card */}
+      {/* Main Status Card */}
       <div 
         className={`relative overflow-hidden rounded-3xl p-6 sm:p-8 border transition-all duration-300 ${
           isGu 
@@ -50,15 +142,14 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
             : 'bg-gradient-to-br from-amber-950/30 via-slate-900/90 to-orange-950/30 border-amber-500/40 shadow-[0_0_40px_-15px_rgba(245,158,11,0.3)]'
         }`}
       >
-        {/* Background Ambient Glow */}
+        {/* Ambient Glow */}
         <div className={`absolute -right-16 -top-16 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-25 ${
           isGu ? 'bg-emerald-500' : 'bg-amber-500'
         }`} />
 
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          {/* Left: Character Avatar & Big Name Display */}
+          {/* Left: Avatar & Character Status */}
           <div className="flex items-center gap-5 sm:gap-6">
-            {/* Dynamic Avatar / Character Badge */}
             <div className={`relative flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-0.5 shadow-xl flex items-center justify-center ${
               isGu 
                 ? 'bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400' 
@@ -68,17 +159,21 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                 {isGu ? (
                   <>
                     <Moon className="w-8 h-8 text-emerald-400 mb-1 animate-pulse" />
-                    <span className="text-[10px] font-bold text-emerald-300 tracking-wider">谷时特惠</span>
+                    <span className="text-[10px] font-bold text-emerald-300 tracking-wider">
+                      {language === 'zh' ? '谷时 5折' : language === 'en' ? '50% Off' : 'Скидка 50%'}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Sun className="w-8 h-8 text-amber-400 mb-1 animate-spin-slow" />
-                    <span className="text-[10px] font-bold text-amber-300 tracking-wider">高峰原价</span>
+                    <span className="text-[10px] font-bold text-amber-300 tracking-wider">
+                      {language === 'zh' ? '高峰原价' : language === 'en' ? 'Standard' : 'Пик 100%'}
+                    </span>
                   </>
                 )}
               </div>
 
-              {/* Status Dot */}
+              {/* Status Ping */}
               <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-950 ${
                 isGu ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-ping'
               }`} />
@@ -87,10 +182,10 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
               }`} />
             </div>
 
-            {/* Names & Taglines */}
+            {/* Title, Badge & Tagline */}
             <div>
-              <div className="flex items-center gap-3 mb-1 flex-wrap">
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2">
                   <span>{phaseInfo.characterName}</span>
                 </h2>
                 <span className={`px-2.5 py-1 rounded-xl text-xs font-bold border tracking-wide uppercase ${
@@ -100,11 +195,9 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                 }`}>
                   {phaseInfo.phaseName}
                 </span>
-                {isWeekend && (
-                  <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                    {phaseInfo.beijingWeekdayName} · 周末全天 5 折
-                  </span>
-                )}
+                <span className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700">
+                  {phaseInfo.beijingWeekdayName}
+                </span>
               </div>
 
               <p className="text-sm sm:text-base font-medium text-slate-300 flex items-center gap-2">
@@ -121,16 +214,16 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
             </div>
           </div>
 
-          {/* Right: Countdown to Next Transition */}
+          {/* Right: Countdown Widget */}
           <div className="w-full lg:w-auto flex flex-col items-start lg:items-end justify-center pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
             <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 w-full lg:min-w-[280px]">
-              <div className="flex items-center justify-between gap-2 text-xs text-slate-400 mb-2">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Clock className="w-3.5 h-3.5 text-blue-400" />
-                  切换目标：{phaseInfo.nextPhaseName}
+              <div className="flex items-center justify-between gap-2 text-xs text-slate-400 mb-1.5">
+                <span className="flex items-center gap-1.5 font-medium min-w-0 flex-1 truncate pr-1">
+                  <Timer className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                  <span className="truncate">{t.targetNext}：{phaseInfo.nextCharacterName}</span>
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
-                  倒计时
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex-shrink-0">
+                  {t.countdownLabel}
                 </span>
               </div>
 
@@ -138,163 +231,181 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                 {phaseInfo.countdownFormatted}
               </div>
 
-              <div className="text-[11px] text-slate-400 flex items-center justify-between">
-                <span>当前阶段：</span>
-                <span className="font-mono font-semibold text-slate-300">
-                  {phaseInfo.currentPeriodName}
+              <div className="text-[11px] text-slate-400 flex items-center justify-between gap-2">
+                <span className="flex-shrink-0">{t.nextPhaseLabel}</span>
+                <span className="font-mono font-semibold text-slate-300 min-w-0 flex-1 text-right truncate">
+                  {phaseInfo.nextPhaseName}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 24-Hour Visual Day Timeline */}
-        <div className="mt-6 pt-5 border-t border-slate-800/60">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-            <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-blue-400" />
-              24小时峰谷时间轴 (北京时间 {phaseInfo.beijingWeekdayName})
-            </span>
-            <span className="font-mono text-slate-400">
-              当前指针：{phaseInfo.beijingTimeString} ({phaseInfo.dayProgressPercent.toFixed(1)}%)
-            </span>
+        {/* Single 24-Hour Visual Timeline */}
+        <div className="mt-8 pt-6 border-t border-slate-800/80">
+          {/* Header */}
+          <div className="flex items-center justify-between text-xs text-slate-300 mb-4 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <span className="font-bold text-white text-sm whitespace-nowrap">{t.timelineTitle}</span>
+              <span className="text-[11px] text-slate-400 whitespace-nowrap">{t.timelineBenchmark}</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 font-mono text-xs">
+              <div className="flex items-center gap-1.5 text-amber-300 whitespace-nowrap">
+                <div className="w-2.5 h-2.5 rounded bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.6)] flex-shrink-0" />
+                <span>{t.legendPeak}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-300 whitespace-nowrap">
+                <div className="w-2.5 h-2.5 rounded bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)] flex-shrink-0" />
+                <span>{t.legendValley}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Multi-segment Timeline Bar */}
-          <div className="relative w-full h-8 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center">
-            {isWeekend ? (
-              // Weekend: 100% Gu (50% discount)
-              <div className="w-full h-full bg-emerald-950/70 flex items-center justify-center relative">
-                <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                  <Moon className="w-3.5 h-3.5" />
-                  周末全天空闲特惠时段 (梁文谷 · 50% 半价)
-                </span>
-              </div>
-            ) : (
-              // Weekday: 5 segments
-              <>
-                {/* 00:00 - 09:00: 梁文谷 (凌晨夜间 5折) */}
-                <div 
-                  style={{ width: `${guNightMorningPercent}%` }} 
-                  className="h-full bg-emerald-950/60 border-r border-slate-800/80 flex items-center justify-center relative group"
-                  title="00:00 - 09:00 梁文谷 (夜间 5折)"
-                >
-                  <span className="text-[10px] font-bold text-emerald-400/80 truncate px-1 flex items-center gap-1">
-                    <Moon className="w-2.5 h-2.5" />
-                    谷时 0-9h (5折)
-                  </span>
-                </div>
-
-                {/* 09:00 - 12:00: 梁文峰 (上午高峰 原价) */}
-                <div 
-                  style={{ width: `${fengMorningPercent}%` }} 
-                  className="h-full bg-amber-950/60 border-r border-slate-800/80 flex items-center justify-center relative group"
-                  title="09:00 - 12:00 梁文峰 (上午高峰 原价)"
-                >
-                  <span className="text-[10px] font-bold text-amber-300 truncate px-1 flex items-center gap-1">
-                    <Sun className="w-2.5 h-2.5" />
-                    9-12h 峰时
-                  </span>
-                </div>
-
-                {/* 12:00 - 14:00: 梁文谷 (午间空闲 5折) */}
-                <div 
-                  style={{ width: `${guNoonPercent}%` }} 
-                  className="h-full bg-emerald-950/60 border-r border-slate-800/80 flex items-center justify-center relative group"
-                  title="12:00 - 14:00 梁文谷 (午间 5折)"
-                >
-                  <span className="text-[10px] font-bold text-emerald-400/80 truncate px-0.5 flex items-center gap-1">
-                    <Moon className="w-2.5 h-2.5" />
-                    12-14h 谷
-                  </span>
-                </div>
-
-                {/* 14:00 - 18:00: 梁文峰 (下午高峰 原价) */}
-                <div 
-                  style={{ width: `${fengAfternoonPercent}%` }} 
-                  className="h-full bg-amber-950/60 border-r border-slate-800/80 flex items-center justify-center relative group"
-                  title="14:00 - 18:00 梁文峰 (下午高峰 原价)"
-                >
-                  <span className="text-[10px] font-bold text-amber-300 truncate px-1 flex items-center gap-1">
-                    <Sun className="w-2.5 h-2.5" />
-                    14-18h 峰时
-                  </span>
-                </div>
-
-                {/* 18:00 - 24:00: 梁文谷 (晚间夜间 5折) */}
-                <div 
-                  style={{ width: `${guNightPercent}%` }} 
-                  className="h-full bg-emerald-950/60 flex items-center justify-center relative group"
-                  title="18:00 - 24:00 梁文谷 (晚间 5折)"
-                >
-                  <span className="text-[10px] font-bold text-emerald-400/80 truncate px-1 flex items-center gap-1">
-                    <Moon className="w-2.5 h-2.5" />
-                    18-24h 谷时 (5折)
-                  </span>
-                </div>
-              </>
-            )}
-
-            {/* Current Position Marker Needle */}
+          {/* Only Single Continuous Timeline Bar */}
+          <div className="relative pt-7 pb-2 select-none">
+            {/* Real-time Needle & Top Indicator Badge */}
             <div 
-              style={{ left: `${phaseInfo.dayProgressPercent}%` }}
-              className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_12px_#ffffff] z-20 transition-all duration-300 pointer-events-none"
+              style={{ left: `${needlePercent}%` }}
+              className="absolute top-0 bottom-7 w-0.5 bg-blue-400 z-30 pointer-events-none transition-all duration-300"
             >
-              <div className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-white border-2 border-blue-600 shadow-md"></div>
+              {/* Floating current time tag */}
+              <div 
+                className={`absolute -top-7 ${tagTranslate} whitespace-nowrap bg-blue-600 text-white font-mono text-[10px] font-black px-2 py-0.5 rounded-md shadow-lg border border-blue-400 flex items-center gap-1 z-40`}
+              >
+                <span>{language === 'zh' ? '北京' : language === 'en' ? 'Beijing' : 'Пекин'} {phaseInfo.beijingTimeString}</span>
+                <span className="text-[9px] px-1 rounded bg-blue-800 text-blue-200">
+                  {isGu ? `${t.valleyName} 50%` : `${t.peakName} 100%`}
+                </span>
+              </div>
+
+              {/* Pointer Triangle Marker */}
+              <div className="absolute top-7 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-blue-400"></div>
+            </div>
+
+            {/* Single Continuous 24-Hour Bar */}
+            <div className="relative w-full h-12 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner">
+              {segments.map((seg) => {
+                const isFengType = seg.type === 'feng';
+                const isNarrow = seg.widthPercent < 15;
+
+                return (
+                  <div
+                    key={seg.id}
+                    style={{ width: `${seg.widthPercent}%` }}
+                    className={`h-full relative flex flex-col justify-center items-center px-0.5 sm:px-1 border-r border-slate-950/80 transition-all duration-200 overflow-hidden ${
+                      isFengType
+                        ? seg.isActive
+                          ? 'bg-amber-600/40 ring-2 ring-inset ring-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                          : 'bg-amber-950/40'
+                        : seg.isActive
+                          ? 'bg-emerald-600/40 ring-2 ring-inset ring-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                          : 'bg-emerald-950/40'
+                    }`}
+                  >
+                    {/* Active pulsating shimmer */}
+                    {seg.isActive && (
+                      <div className={`absolute inset-0 opacity-20 animate-pulse ${
+                        isFengType ? 'bg-amber-400' : 'bg-emerald-400'
+                      }`} />
+                    )}
+
+                    {/* Segment Label Inside Bar: ONLY current timezone day/night + peak/valley */}
+                    <div className="relative z-10 flex items-center justify-center text-center max-w-full px-1">
+                      <span className={`text-[11px] sm:text-xs font-black truncate max-w-full flex items-center gap-1 ${
+                        isFengType ? 'text-amber-300' : 'text-emerald-300'
+                      }`}>
+                        {seg.isDay ? (
+                          <Sun className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+                        ) : (
+                          <Moon className="w-3.5 h-3.5 flex-shrink-0 text-blue-300" />
+                        )}
+                        <span className="truncate tracking-wider">{seg.label}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Clear Non-overlapping Time Axis Ticks */}
+            <div className="relative w-full h-7 mt-2 text-[10px] font-mono text-slate-400">
+              {rulerTicks.map((tick) => {
+                const isLeftEdge = tick.percent === 0;
+                const isRightEdge = tick.percent === 100;
+                const isFengTick = tick.type === 'feng';
+                const isGuTick = tick.type === 'gu';
+
+                let alignClass = '-translate-x-1/2 items-center';
+                if (isLeftEdge) alignClass = 'translate-x-0 items-start';
+                if (isRightEdge) alignClass = '-translate-x-full items-end';
+
+                return (
+                  <div
+                    key={tick.label}
+                    style={{ left: `${tick.percent}%` }}
+                    className={`absolute flex flex-col ${alignClass}`}
+                  >
+                    <div className="w-0.5 h-1.5 mb-0.5 bg-slate-700" />
+                    <span className={`whitespace-nowrap ${
+                      isFengTick
+                        ? 'text-amber-300 font-bold'
+                        : isGuTick
+                          ? 'text-emerald-300 font-bold'
+                          : 'text-slate-500'
+                    }`}>
+                      {tick.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Time markers */}
-          <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5 px-0.5 flex-wrap gap-1">
-            <span>00:00</span>
-            <span className="text-amber-400/90 font-bold">09:00 (上午高峰)</span>
-            <span className="text-emerald-400/90 font-bold">12:00 (午间谷时)</span>
-            <span className="text-amber-400/90 font-bold">14:00 (下午高峰)</span>
-            <span className="text-emerald-400/90 font-bold">18:00 (夜间谷时)</span>
-            <span>24:00</span>
+          {/* Collapsible Pricing Rule & Best Practice Guide */}
+          <div className="mt-3 pt-3 border-t border-slate-800/50">
+            <button
+              id="toggle-meme-info-button"
+              onClick={() => setShowMemeInfo(!showMemeInfo)}
+              className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            >
+              <Info className="w-3.5 h-3.5 text-blue-400" />
+              <span>{t.ruleGuideBtn}</span>
+              {showMemeInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showMemeInfo && (
+              <div className="mt-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-2.5 animate-in fade-in duration-200">
+                <div className="font-semibold text-blue-300 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4" />
+                  {t.ruleGuideTitle}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 space-y-1">
+                    <p className="font-bold flex items-center gap-1 text-amber-300">
+                      <Sun className="w-3.5 h-3.5" /> {t.rulePeakTitle}
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-amber-200/90">
+                      {t.rulePeakDesc}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-200 space-y-1">
+                    <p className="font-bold flex items-center gap-1 text-emerald-300">
+                      <Moon className="w-3.5 h-3.5" /> {t.ruleValleyTitle}
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-emerald-200/90">
+                      {t.ruleValleyDesc}
+                    </p>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-200 flex items-center gap-2 text-[11px]">
+                  <TrendingDown className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span><strong>{t.ruleBestPractice}</strong></span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Origin & Meme explanation toggle */}
-        <div className="mt-4 pt-3 border-t border-slate-800/50">
-          <button
-            id="toggle-meme-info-button"
-            onClick={() => setShowMemeInfo(!showMemeInfo)}
-            className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-          >
-            <Info className="w-3.5 h-3.5 text-blue-400" />
-            <span>为什么叫「梁文峰」和「梁文谷」？点击查看官方峰谷规则与省钱指南</span>
-            {showMemeInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-
-          {showMemeInfo && (
-            <div className="mt-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-2.5 animate-in fade-in duration-200">
-              <div className="font-semibold text-blue-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4" />
-                官方峰谷时间段划分与计费规则
-              </div>
-              <div className="p-2.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 space-y-1">
-                <p className="font-bold flex items-center gap-1 text-amber-300">
-                  <Sun className="w-3.5 h-3.5" /> 高峰时段（梁文峰 · 原价 100%）：
-                </p>
-                <p className="text-[11px] leading-relaxed text-amber-200/90">
-                  北京时间工作日 <strong>09:00 - 12:00</strong> 以及 <strong>14:00 - 18:00</strong>。此期间为 API 调用的繁忙时段，按标准费率计费。
-                </p>
-              </div>
-              <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-200 space-y-1">
-                <p className="font-bold flex items-center gap-1 text-emerald-300">
-                  <Moon className="w-3.5 h-3.5" /> 空闲时段 / 谷时（梁文谷 · 半价 50% 特惠）：
-                </p>
-                <p className="text-[11px] leading-relaxed text-emerald-200/90">
-                  除上述高峰外的所有时间，包括<strong>午间 (12:00-14:00)、晚间夜间 (18:00-次日 09:00)、周末（周六、周日全天）及节假日</strong>。此期间 API 调用价格立减一半！
-                </p>
-              </div>
-              <div className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-200 flex items-center gap-2 text-[11px]">
-                <TrendingDown className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span><strong>省钱攻略：</strong> 将非实时的批量评测、离线翻译、数据清洗或微调任务调度在「梁文谷」空闲时段或周末运行，成本直接腰斩 50%！</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 export type DeepSeekPhase = 'feng' | 'gu';
+export type Language = 'zh' | 'en' | 'ru';
 
 export interface TimezoneOption {
   id: string;
@@ -6,11 +7,14 @@ export interface TimezoneOption {
   city: string;
   timeZone: string;
   offsetLabel: string;
+  names?: { zh: string; en: string; ru: string };
+  cities?: { zh: string; en: string; ru: string };
 }
 
 export interface ClockTheme {
   id: string;
   name: string;
+  names?: { zh: string; en: string; ru: string };
   bgClass: string;
   cardBgClass: string;
   borderClass: string;

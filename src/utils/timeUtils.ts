@@ -1,21 +1,21 @@
-import { DeepSeekPhase, PhaseInfo } from '../types';
+import { DeepSeekPhase, PhaseInfo, Language } from '../types';
 
 /**
- * Calculates current phase (梁文峰 vs 梁文谷) and time statistics
- * Note: DeepSeek peak hours are strictly based on Beijing Time (UTC+8):
- * 1. 高峰时段 (梁文峰 · 原价):
- *    - 工作日 (周一至周五): 09:00 - 12:00 以及 14:00 - 18:00 (UTC+8)
- *    - API 业务调用繁忙期，价格为标准费率 (100%)
- * 2. 空闲时段 (梁文谷 · 5折特惠):
- *    - 工作日午间 (12:00 - 14:00)、晚间夜间 (18:00 - 次日 09:00)
- *    - 周末 (周六、周日全天) 及法定节假日
- *    - API 调用价格为高峰时段的一半 (50% 折扣)
+ * DeepSeek official peak/valley pricing rules (Effective 2026-08-17):
+ * 1. 高峰时段 (梁文峰 · 原价 100%):
+ *    - 每日北京时间 (UTC+8) 09:00 - 12:00 (3小时)
+ *    - 每日北京时间 (UTC+8) 14:00 - 18:00 (4小时)
+ * 2. 优惠/空闲时段 (梁文谷 · 5折特惠 50%):
+ *    - 每日北京时间 (UTC+8) 00:00 - 09:00 (9小时，凌晨夜间)
+ *    - 每日北京时间 (UTC+8) 12:00 - 14:00 (2小时，午间错峰)
+ *    - 每日北京时间 (UTC+8) 18:00 - 24:00 (6小时，晚间夜间)
  */
-export function getPhaseInfo(targetDate: Date = new Date()): PhaseInfo {
-  // Obtain Beijing Time (Asia/Shanghai) parts accurately
+export function getPhaseInfo(targetDate: Date = new Date(), lang: Language = 'zh'): PhaseInfo {
+  // Obtain Beijing Time (Asia/Shanghai) parts accurately with explicit h23 cycle
   const beijingFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Shanghai',
     hour12: false,
+    hourCycle: 'h23',
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
@@ -31,56 +31,66 @@ export function getPhaseInfo(targetDate: Date = new Date()): PhaseInfo {
     return p ? p.value : '';
   };
 
-  const bYear = parseInt(findPart('year'), 10) || 2026;
-  const bMonth = parseInt(findPart('month'), 10) || 1;
-  const bDay = parseInt(findPart('day'), 10) || 1;
-  const bHour = parseInt(findPart('hour'), 10) || 0;
+  const bYear = parseInt(findPart('year'), 10) || targetDate.getFullYear();
+  const bMonth = parseInt(findPart('month'), 10) || targetDate.getMonth() + 1;
+  const bDay = parseInt(findPart('day'), 10) || targetDate.getDate();
+  
+  let bHour = parseInt(findPart('hour'), 10);
+  if (isNaN(bHour) || bHour === 24) bHour = 0;
+  
   const bMinute = parseInt(findPart('minute'), 10) || 0;
   const bSecond = parseInt(findPart('second'), 10) || 0;
-  const bWeekdayStr = findPart('weekday'); // e.g. 'Mon', 'Tue', ...
+  const bWeekdayStr = findPart('weekday'); // 'Mon', 'Tue', ...
 
-  const weekdayMap: Record<string, { day: number; name: string }> = {
-    Sun: { day: 0, name: '星期日' },
-    Mon: { day: 1, name: '星期一' },
-    Tue: { day: 2, name: '星期二' },
-    Wed: { day: 3, name: '星期三' },
-    Thu: { day: 4, name: '星期四' },
-    Fri: { day: 5, name: '星期五' },
-    Sat: { day: 6, name: '星期六' },
+  const weekdayMap: Record<string, { day: number; zh: string; en: string; ru: string }> = {
+    Sun: { day: 0, zh: '星期日', en: 'Sunday', ru: 'Воскресенье' },
+    Mon: { day: 1, zh: '星期一', en: 'Monday', ru: 'Понедельник' },
+    Tue: { day: 2, zh: '星期二', en: 'Tuesday', ru: 'Вторник' },
+    Wed: { day: 3, zh: '星期三', en: 'Wednesday', ru: 'Среда' },
+    Thu: { day: 4, zh: '星期四', en: 'Thursday', ru: 'Четверг' },
+    Fri: { day: 5, zh: '星期五', en: 'Friday', ru: 'Пятница' },
+    Sat: { day: 6, zh: '星期六', en: 'Saturday', ru: 'Суббота' },
   };
 
-  const weekdayInfo = weekdayMap[bWeekdayStr] || { day: 1, name: '星期一' };
+  const weekdayInfo = weekdayMap[bWeekdayStr] || { day: 1, zh: '星期一', en: 'Monday', ru: 'Понедельник' };
   const beijingDayOfWeek = weekdayInfo.day;
-  const beijingWeekdayName = weekdayInfo.name;
+  const beijingWeekdayName = weekdayInfo[lang] || weekdayInfo.zh;
   const isWeekend = beijingDayOfWeek === 0 || beijingDayOfWeek === 6;
 
-  // Decimal hours in Beijing time (e.g. 9:30 = 9.5)
+  // Decimal hours in Beijing time (e.g. 09:30:00 = 9.5)
   const decimalBeijingHour = bHour + bMinute / 60 + bSecond / 3600;
 
-  // Peak ranges on weekdays: 09:00 - 12:00, 14:00 - 18:00
-  const inMorningPeak = !isWeekend && decimalBeijingHour >= 9 && decimalBeijingHour < 12;
-  const inAfternoonPeak = !isWeekend && decimalBeijingHour >= 14 && decimalBeijingHour < 18;
+  // Peak ranges: 09:00 - 12:00 (3h), 14:00 - 18:00 (4h)
+  const inMorningPeak = decimalBeijingHour >= 9 && decimalBeijingHour < 12;
+  const inAfternoonPeak = decimalBeijingHour >= 14 && decimalBeijingHour < 18;
 
   const isFeng = inMorningPeak || inAfternoonPeak;
   const currentPhase: DeepSeekPhase = isFeng ? 'feng' : 'gu';
 
-  // Determine current period description name
+  // Determine current period description name localized
   let currentPeriodName = '';
-  if (isWeekend) {
-    currentPeriodName = beijingDayOfWeek === 6 ? '周六全天特惠' : '周日全天特惠';
-  } else if (inMorningPeak) {
-    currentPeriodName = '上午高峰 (09:00 - 12:00)';
-  } else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) {
-    currentPeriodName = '午间错峰空闲 (12:00 - 14:00)';
-  } else if (inAfternoonPeak) {
-    currentPeriodName = '下午高峰 (14:00 - 18:00)';
-  } else if (decimalBeijingHour >= 18) {
-    currentPeriodName = '晚间夜间空闲 (18:00 - 次日 09:00)';
+  if (lang === 'zh') {
+    if (inMorningPeak) currentPeriodName = '上午高峰时段 (09:00 - 12:00 · 原价)';
+    else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) currentPeriodName = '午间错峰谷时 (12:00 - 14:00 · 5折)';
+    else if (inAfternoonPeak) currentPeriodName = '下午高峰时段 (14:00 - 18:00 · 原价)';
+    else if (decimalBeijingHour >= 18) currentPeriodName = '晚间夜间谷时 (18:00 - 24:00 · 5折)';
+    else currentPeriodName = '凌晨夜间谷时 (00:00 - 09:00 · 5折)';
+  } else if (lang === 'en') {
+    if (inMorningPeak) currentPeriodName = 'Morning Peak (09:00 - 12:00 · Standard)';
+    else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) currentPeriodName = 'Noon Valley (12:00 - 14:00 · 50% Off)';
+    else if (inAfternoonPeak) currentPeriodName = 'Afternoon Peak (14:00 - 18:00 · Standard)';
+    else if (decimalBeijingHour >= 18) currentPeriodName = 'Evening Valley (18:00 - 24:00 · 50% Off)';
+    else currentPeriodName = 'Night Valley (00:00 - 09:00 · 50% Off)';
   } else {
-    currentPeriodName = '凌晨夜间空闲 (00:00 - 09:00)';
+    // ru
+    if (inMorningPeak) currentPeriodName = 'Утренний пик (09:00 - 12:00 · 100%)';
+    else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) currentPeriodName = 'Обеденная скидка (12:00 - 14:00 · 50%)';
+    else if (inAfternoonPeak) currentPeriodName = 'Дневной пик (14:00 - 18:00 · 100%)';
+    else if (decimalBeijingHour >= 18) currentPeriodName = 'Вечерняя скидка (18:00 - 24:00 · 50%)';
+    else currentPeriodName = 'Ночная скидка (00:00 - 09:00 · 50%)';
   }
 
-  // Calculate next phase transition timestamp
+  // Calculate next phase transition timestamp accurately
   let nextTransitionYear = bYear;
   let nextTransitionMonth = bMonth;
   let nextTransitionDay = bDay;
@@ -89,66 +99,99 @@ export function getPhaseInfo(targetDate: Date = new Date()): PhaseInfo {
   let nextPhaseName = '';
   let nextCharacterName = '';
 
-  if (isWeekend) {
-    // Weekend is all Gu. Next transition is Monday 09:00 CST
-    const daysUntilMonday = beijingDayOfWeek === 6 ? 2 : 1; // Sat -> +2, Sun -> +1
-    const nextDate = new Date(Date.UTC(bYear, bMonth - 1, bDay + daysUntilMonday, 1, 0, 0)); // 09:00 CST is 01:00 UTC
-    nextTransitionYear = nextDate.getUTCFullYear();
-    nextTransitionMonth = nextDate.getUTCMonth() + 1;
-    nextTransitionDay = nextDate.getUTCDate();
-    nextTransitionHour = 9;
-    nextTransitionMinute = 0;
-    nextPhaseName = '高峰时段 (周一 09:00 · 梁文峰)';
-    nextCharacterName = '梁文峰';
-  } else {
-    // Weekday transitions
+  if (lang === 'zh') {
     if (decimalBeijingHour < 9) {
-      // 00:00 - 09:00 (Gu) -> Next: 09:00 Feng
       nextTransitionHour = 9;
       nextTransitionMinute = 0;
-      nextPhaseName = '上午高峰 (09:00 · 梁文峰 · 原价)';
+      nextPhaseName = '上午高峰时段 (09:00 · 梁文峰 · 原价)';
       nextCharacterName = '梁文峰';
     } else if (decimalBeijingHour >= 9 && decimalBeijingHour < 12) {
-      // 09:00 - 12:00 (Feng) -> Next: 12:00 Gu
       nextTransitionHour = 12;
       nextTransitionMinute = 0;
-      nextPhaseName = '午间空闲 (12:00 · 梁文谷 · 5折)';
+      nextPhaseName = '午间错峰谷时 (12:00 · 梁文谷 · 5折)';
       nextCharacterName = '梁文谷';
     } else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) {
-      // 12:00 - 14:00 (Gu) -> Next: 14:00 Feng
       nextTransitionHour = 14;
       nextTransitionMinute = 0;
-      nextPhaseName = '下午高峰 (14:00 · 梁文峰 · 原价)';
+      nextPhaseName = '下午高峰时段 (14:00 · 梁文峰 · 原价)';
       nextCharacterName = '梁文峰';
     } else if (decimalBeijingHour >= 14 && decimalBeijingHour < 18) {
-      // 14:00 - 18:00 (Feng) -> Next: 18:00 Gu
       nextTransitionHour = 18;
       nextTransitionMinute = 0;
-      nextPhaseName = '晚间空闲 (18:00 · 梁文谷 · 5折)';
+      nextPhaseName = '晚间夜间谷时 (18:00 · 梁文谷 · 5折)';
       nextCharacterName = '梁文谷';
     } else {
-      // >= 18:00 (Gu) -> Next peak is tomorrow or Monday
-      if (beijingDayOfWeek === 5) {
-        // Friday after 18:00 -> Next peak is Monday 09:00
-        const nextDate = new Date(Date.UTC(bYear, bMonth - 1, bDay + 3, 1, 0, 0));
-        nextTransitionYear = nextDate.getUTCFullYear();
-        nextTransitionMonth = nextDate.getUTCMonth() + 1;
-        nextTransitionDay = nextDate.getUTCDate();
-        nextTransitionHour = 9;
-        nextTransitionMinute = 0;
-        nextPhaseName = '下周一高峰 (09:00 · 梁文峰)';
-        nextCharacterName = '梁文峰';
-      } else {
-        // Mon-Thu after 18:00 -> Next peak is tomorrow 09:00
-        const nextDate = new Date(Date.UTC(bYear, bMonth - 1, bDay + 1, 1, 0, 0));
-        nextTransitionYear = nextDate.getUTCFullYear();
-        nextTransitionMonth = nextDate.getUTCMonth() + 1;
-        nextTransitionDay = nextDate.getUTCDate();
-        nextTransitionHour = 9;
-        nextTransitionMinute = 0;
-        nextPhaseName = '明日上午高峰 (09:00 · 梁文峰)';
-        nextCharacterName = '梁文峰';
-      }
+      const nextDate = new Date(Date.UTC(bYear, bMonth - 1, bDay + 1, 1, 0, 0));
+      nextTransitionYear = nextDate.getUTCFullYear();
+      nextTransitionMonth = nextDate.getUTCMonth() + 1;
+      nextTransitionDay = nextDate.getUTCDate();
+      nextTransitionHour = 9;
+      nextTransitionMinute = 0;
+      nextPhaseName = '明日上午高峰 (09:00 · 梁文峰 · 原价)';
+      nextCharacterName = '梁文峰';
+    }
+  } else if (lang === 'en') {
+    if (decimalBeijingHour < 9) {
+      nextTransitionHour = 9;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Morning Peak (09:00 · Liang Wenpeak · 100%)';
+      nextCharacterName = 'Liang Wenpeak';
+    } else if (decimalBeijingHour >= 9 && decimalBeijingHour < 12) {
+      nextTransitionHour = 12;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Noon Valley (12:00 · Liang Wentrough · 50% Off)';
+      nextCharacterName = 'Liang Wentrough';
+    } else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) {
+      nextTransitionHour = 14;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Afternoon Peak (14:00 · Liang Wenpeak · 100%)';
+      nextCharacterName = 'Liang Wenpeak';
+    } else if (decimalBeijingHour >= 14 && decimalBeijingHour < 18) {
+      nextTransitionHour = 18;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Evening Valley (18:00 · Liang Wentrough · 50% Off)';
+      nextCharacterName = 'Liang Wentrough';
+    } else {
+      const nextDate = new Date(Date.UTC(bYear, bMonth - 1, bDay + 1, 1, 0, 0));
+      nextTransitionYear = nextDate.getUTCFullYear();
+      nextTransitionMonth = nextDate.getUTCMonth() + 1;
+      nextTransitionDay = nextDate.getUTCDate();
+      nextTransitionHour = 9;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Tomorrow Morning Peak (09:00 · 100%)';
+      nextCharacterName = 'Liang Wenpeak';
+    }
+  } else {
+    // ru
+    if (decimalBeijingHour < 9) {
+      nextTransitionHour = 9;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Утренний пик (09:00 · Пиковый Лян · 100%)';
+      nextCharacterName = 'Пиковый Лян';
+    } else if (decimalBeijingHour >= 9 && decimalBeijingHour < 12) {
+      nextTransitionHour = 12;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Обеденная скидка (12:00 · Долинный Лян · 50%)';
+      nextCharacterName = 'Долинный Лян';
+    } else if (decimalBeijingHour >= 12 && decimalBeijingHour < 14) {
+      nextTransitionHour = 14;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Дневной пик (14:00 · Пиковый Лян · 100%)';
+      nextCharacterName = 'Пиковый Лян';
+    } else if (decimalBeijingHour >= 14 && decimalBeijingHour < 18) {
+      nextTransitionHour = 18;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Вечерняя скидка (18:00 · Долинный Лян · 50%)';
+      nextCharacterName = 'Долинный Лян';
+    } else {
+      const nextDate = new Date(Date.UTC(bYear, bMonth - 1, bDay + 1, 1, 0, 0));
+      nextTransitionYear = nextDate.getUTCFullYear();
+      nextTransitionMonth = nextDate.getUTCMonth() + 1;
+      nextTransitionDay = nextDate.getUTCDate();
+      nextTransitionHour = 9;
+      nextTransitionMinute = 0;
+      nextPhaseName = 'Завтрашний утренний пик (09:00 · 100%)';
+      nextCharacterName = 'Пиковый Лян';
     }
   }
 
@@ -172,15 +215,44 @@ export function getPhaseInfo(targetDate: Date = new Date()): PhaseInfo {
   const beijingTimeString = `${String(bHour).padStart(2, '0')}:${String(bMinute).padStart(2, '0')}:${String(bSecond).padStart(2, '0')}`;
   const dayProgressPercent = Math.min(100, Math.max(0, (decimalBeijingHour / 24) * 100));
 
+  const charName = lang === 'zh' ? (isFeng ? '梁文峰' : '梁文谷') : lang === 'en' ? (isFeng ? 'Liang Wenpeak' : 'Liang Wentrough') : (isFeng ? 'Пиковый Лян' : 'Долинный Лян');
+  const phaseName = lang === 'zh' 
+    ? (isFeng ? '高峰时段 (繁忙原价 100%)' : '空闲谷时 (5折半价特惠 50%)')
+    : lang === 'en'
+    ? (isFeng ? 'Peak Hours (100% Standard)' : 'Off-Peak Valley (50% Off)')
+    : (isFeng ? 'Пиковый период (100%)' : 'Непиковый период (Скидка 50%)');
+
+  const tagline = lang === 'zh'
+    ? (isFeng ? '高峰繁忙 · 原价输出' : '错峰空闲 · 5折特惠')
+    : lang === 'en'
+    ? (isFeng ? 'Peak Traffic · Standard Rate' : 'Off-Peak Hours · 50% Discount')
+    : (isFeng ? 'Высокая нагрузка · 100%' : 'Непиковые часы · Скидка 50%');
+
+  const discountRate = lang === 'zh'
+    ? (isFeng ? '100% (标准原价)' : '50% (5折半价)')
+    : lang === 'en'
+    ? (isFeng ? '100% (Standard)' : '50% (50% Off)')
+    : (isFeng ? '100% (Стандарт)' : '50% (Скидка 50%)');
+
+  const description = lang === 'zh'
+    ? (isFeng
+      ? `当前处于【梁文峰】繁忙高峰期（${currentPeriodName}），属于 API 调用高并发时段，按标准费率 100% 计费。`
+      : `当前处于【梁文谷】错峰优惠期（${currentPeriodName}），API 调用价格立享 5 折（50% 折扣），推荐批量跑批！`)
+    : lang === 'en'
+    ? (isFeng
+      ? `Currently in [${charName}] peak traffic period (${currentPeriodName}). API requests are charged at the standard 100% rate.`
+      : `Currently in [${charName}] off-peak window (${currentPeriodName})! API calls enjoy an instant 50% discount. Perfect for batch runs!`)
+    : (isFeng
+      ? `Сейчас действует пиковый период [${charName}] (${currentPeriodName}). Запросы тарифицируются по 100% стоимости.`
+      : `Сейчас действует скидочный период [${charName}] (${currentPeriodName})! Скидка 50% на все вызовы API. Рекомендуется для пакетных задач!`);
+
   return {
     currentPhase,
-    phaseName: isFeng ? '高峰时段 (繁忙原价)' : '空闲时段 (5折半价特惠)',
-    characterName: isFeng ? '梁文峰' : '梁文谷',
-    description: isFeng
-      ? `当前处于【梁文峰】繁忙高峰时段（${currentPeriodName}），属于 API 调用繁忙期，价格按标准费率计费。`
-      : `当前处于【梁文谷】空闲时段（${currentPeriodName}），包括夜间、午间、周末全天，API 调用价格立享 50%（5折）半价！`,
-    tagline: isFeng ? '高峰繁忙 · 原价输出' : '空闲错峰 · 半价特惠',
-    discountRate: isFeng ? '100% (标准原价)' : '50% (5折半价)',
+    phaseName,
+    characterName: charName,
+    description,
+    tagline,
+    discountRate,
     beijingHour: bHour,
     beijingMinute: bMinute,
     beijingSecond: bSecond,
@@ -199,9 +271,11 @@ export function getPhaseInfo(targetDate: Date = new Date()): PhaseInfo {
 }
 
 /**
- * Format date & time for given timezone
+ * Format date & time for given timezone and language
  */
-export function formatTimeInZone(date: Date, timeZone: string, use24h: boolean = true) {
+export function formatTimeInZone(date: Date, timeZone: string, use24h: boolean = true, lang: Language = 'zh') {
+  const locale = lang === 'zh' ? 'zh-CN' : lang === 'en' ? 'en-US' : 'ru-RU';
+
   const options: Intl.DateTimeFormatOptions = {
     timeZone,
     hour12: !use24h,
@@ -210,7 +284,7 @@ export function formatTimeInZone(date: Date, timeZone: string, use24h: boolean =
     second: '2-digit',
   };
 
-  const timeStr = new Intl.DateTimeFormat('zh-CN', options).format(date);
+  const timeStr = new Intl.DateTimeFormat(locale, options).format(date);
 
   const dateOptions: Intl.DateTimeFormatOptions = {
     timeZone,
@@ -219,7 +293,7 @@ export function formatTimeInZone(date: Date, timeZone: string, use24h: boolean =
     day: 'numeric',
     weekday: 'long',
   };
-  const dateStr = new Intl.DateTimeFormat('zh-CN', dateOptions).format(date);
+  const dateStr = new Intl.DateTimeFormat(locale, dateOptions).format(date);
 
   // Timezone display name / offset
   const tzParts = new Intl.DateTimeFormat('en-US', {
@@ -245,14 +319,7 @@ export function getLunarInfo(date: Date): { lunarStr: string; solarTerm: string 
       day: 'numeric',
     });
     const lunarRaw = formatter.format(date);
-    const months = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
-    const days = [
-      '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-      '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-      '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
-    ];
 
-    // Simple fallback string
     return {
       lunarStr: `农历 ${lunarRaw}`,
       solarTerm: getSolarTerm(date),

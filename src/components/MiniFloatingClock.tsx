@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Maximize2, 
   Move, 
@@ -6,16 +6,18 @@ import {
   Moon, 
   Volume2, 
   VolumeX, 
-  Sparkles,
-  RotateCcw
+  Sparkles, 
+  RotateCcw 
 } from 'lucide-react';
-import { ClockTheme, PhaseInfo, TimezoneOption } from '../types';
+import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
 import { formatTimeInZone } from '../utils/timeUtils';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface MiniFloatingClockProps {
   now: Date;
   currentTimezone: TimezoneOption;
   currentTheme: ClockTheme;
+  language: Language;
   use24h: boolean;
   showMs: boolean;
   phaseInfo: PhaseInfo;
@@ -28,7 +30,7 @@ interface MiniFloatingClockProps {
 export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
   now,
   currentTimezone,
-  currentTheme,
+  language,
   use24h,
   showMs,
   phaseInfo,
@@ -37,21 +39,40 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
   onRestoreMain,
 }) => {
   const clockRef = useRef<HTMLDivElement>(null);
+  const t = TRANSLATIONS[language];
   
   // Position as left (x) and top (y)
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
     const defaultWidth = 290;
-    const defaultHeight = 160;
+    const defaultHeight = 150;
     const initialX = typeof window !== 'undefined' ? Math.max(16, window.innerWidth - defaultWidth - 24) : 100;
     const initialY = typeof window !== 'undefined' ? Math.max(16, window.innerHeight - defaultHeight - 24) : 100;
     return { x: initialX, y: initialY };
   });
 
   const [isDragging, setIsDragging] = useState(false);
-  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [compactMode, setCompactMode] = useState<boolean>(false);
 
-  const { timeStr } = formatTimeInZone(now, currentTimezone.timeZone, use24h);
+  // Drag tracking refs
+  const dragRef = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+    pointerId: number | null;
+    rafId: number | null;
+  }>({
+    active: false,
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+    pointerId: null,
+    rafId: null,
+  });
+
+  const { timeStr } = formatTimeInZone(now, currentTimezone.timeZone, use24h, language);
   const msString = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   const isGu = phaseInfo.currentPhase === 'gu';
 
@@ -61,11 +82,11 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       if (!clockRef.current) return;
       const rect = clockRef.current.getBoundingClientRect();
       setPosition((prev) => {
-        const maxX = Math.max(10, window.innerWidth - rect.width - 10);
-        const maxY = Math.max(10, window.innerHeight - rect.height - 10);
+        const maxX = Math.max(8, window.innerWidth - rect.width - 8);
+        const maxY = Math.max(8, window.innerHeight - rect.height - 8);
         return {
-          x: Math.min(Math.max(10, prev.x), maxX),
-          y: Math.min(Math.max(10, prev.y), maxY),
+          x: Math.min(Math.max(8, prev.x), maxX),
+          y: Math.min(Math.max(8, prev.y), maxY),
         };
       });
     };
@@ -74,60 +95,84 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Pointer Down to start dragging
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Ignore clicks on buttons or interactive controls
+  // Pointer Down to start dragging with pointer capture
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return;
+    
+    const targetEl = e.currentTarget;
+    try {
+      targetEl.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore fallback if unsupported
+    }
 
-    const targetEl = clockRef.current;
-    if (!targetEl) return;
-
-    setIsDragging(true);
-    const rect = targetEl.getBoundingClientRect();
-    dragOffsetRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y,
+      pointerId: e.pointerId,
+      rafId: null,
     };
 
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      // ignore
+    setIsDragging(true);
+    document.body.style.userSelect = 'none';
+  }, [position.x, position.y]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.active) return;
+
+    const currentX = e.clientX;
+    const currentY = e.clientY;
+
+    if (dragRef.current.rafId) {
+      cancelAnimationFrame(dragRef.current.rafId);
     }
-  };
 
-  // Pointer Move for smooth 1:1 dragging
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
+    dragRef.current.rafId = requestAnimationFrame(() => {
+      const clockEl = clockRef.current;
+      const width = clockEl ? clockEl.offsetWidth : 280;
+      const height = clockEl ? clockEl.offsetHeight : 140;
 
-    const clockEl = clockRef.current;
-    const width = clockEl ? clockEl.offsetWidth : 280;
-    const height = clockEl ? clockEl.offsetHeight : 140;
+      const deltaX = currentX - dragRef.current.startX;
+      const deltaY = currentY - dragRef.current.startY;
 
-    const minX = 8;
-    const maxX = Math.max(8, window.innerWidth - width - 8);
-    const minY = 8;
-    const maxY = Math.max(8, window.innerHeight - height - 8);
+      const rawX = dragRef.current.initialX + deltaX;
+      const rawY = dragRef.current.initialY + deltaY;
 
-    const nextX = Math.min(Math.max(minX, e.clientX - dragOffsetRef.current.x), maxX);
-    const nextY = Math.min(Math.max(minY, e.clientY - dragOffsetRef.current.y), maxY);
+      const minX = 8;
+      const maxX = Math.max(8, window.innerWidth - width - 8);
+      const minY = 8;
+      const maxY = Math.max(8, window.innerHeight - height - 8);
 
-    setPosition({ x: nextX, y: nextY });
-  };
+      const clampedX = Math.min(Math.max(minX, rawX), maxX);
+      const clampedY = Math.min(Math.max(minY, rawY), maxY);
 
-  // Pointer Up/Cancel to stop dragging
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDragging) {
-      setIsDragging(false);
+      setPosition({ x: clampedX, y: clampedY });
+    });
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.active) return;
+    
+    if (dragRef.current.pointerId !== null) {
       try {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        }
+        e.currentTarget.releasePointerCapture(dragRef.current.pointerId);
       } catch {
-        // ignore
+        // Ignore fallback
       }
     }
-  };
+
+    if (dragRef.current.rafId) {
+      cancelAnimationFrame(dragRef.current.rafId);
+    }
+
+    dragRef.current.active = false;
+    dragRef.current.pointerId = null;
+    setIsDragging(false);
+    document.body.style.userSelect = '';
+  }, []);
 
   const handleResetPosition = () => {
     if (!clockRef.current) return;
@@ -144,48 +189,50 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       id="mini-floating-clock-container"
       style={{
         position: 'fixed',
-        left: `${position.x}px`,
-        top: `${position.y}px`,
+        left: 0,
+        top: 0,
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
         zIndex: 9999,
         touchAction: 'none',
+        willChange: 'transform',
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className={`select-none shadow-2xl rounded-2xl border backdrop-blur-2xl transition-all duration-75 ${
+      className={`select-none shadow-2xl rounded-2xl border backdrop-blur-2xl transition-shadow ${
         isGu
-          ? 'bg-slate-950/92 border-emerald-500/50 shadow-emerald-950/50 ring-1 ring-emerald-500/30'
-          : 'bg-slate-950/92 border-amber-500/50 shadow-amber-950/50 ring-1 ring-amber-500/30'
-      } ${isDragging ? 'cursor-grabbing opacity-90 scale-[1.02] shadow-blue-900/40' : 'cursor-grab'} animate-in fade-in duration-200`}
+          ? 'bg-slate-950/95 border-emerald-500/50 shadow-[0_10px_35px_-5px_rgba(16,185,129,0.3)] ring-1 ring-emerald-500/30'
+          : 'bg-slate-950/95 border-amber-500/50 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.3)] ring-1 ring-amber-500/30'
+      } ${isDragging ? 'cursor-grabbing scale-[1.02] ring-2 ring-blue-500 shadow-blue-500/40' : 'cursor-grab'} animate-in fade-in duration-200`}
     >
       {/* Mini Title Bar / Drag handle */}
       <div 
         id="mini-clock-drag-bar"
-        className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/80 text-[10px] text-slate-400 bg-slate-900/70 rounded-t-2xl"
+        className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/80 text-[10px] text-slate-400 bg-slate-900/80 rounded-t-2xl gap-2"
       >
-        <div className="flex items-center gap-1.5 font-semibold text-slate-300 pointer-events-none">
-          <Move className="w-3 h-3 text-slate-400" />
-          <span>DeepSeek 小时钟</span>
+        <div className="flex items-center gap-1.5 font-semibold text-slate-300 pointer-events-none truncate">
+          <Move className={`w-3 h-3 flex-shrink-0 ${isDragging ? 'text-blue-400' : 'text-slate-400'}`} />
+          <span className="truncate">{t.miniClock}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={handleResetPosition}
-            title="靠右下停靠"
+            title={language === 'zh' ? '靠右下停靠' : 'Dock Bottom-Right'}
             className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-2.5 h-2.5" />
           </button>
           <button
             onClick={() => setCompactMode(!compactMode)}
-            title={compactMode ? '展开模式' : '极简超小模式'}
+            title={compactMode ? (language === 'zh' ? '展开模式' : 'Expand') : (language === 'zh' ? '极简超小模式' : 'Compact')}
             className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
           >
             <Sparkles className="w-2.5 h-2.5" />
           </button>
           <button
             onClick={onToggleSound}
-            title={soundEnabled ? '静音' : '开启报时'}
+            title={soundEnabled ? t.soundEnabledTitle : t.soundDisabledTitle}
             className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
           >
             {soundEnabled ? <Volume2 className="w-2.5 h-2.5 text-blue-400" /> : <VolumeX className="w-2.5 h-2.5" />}
@@ -193,32 +240,34 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
           <button
             id="restore-main-view-button"
             onClick={onRestoreMain}
-            title="还原到完整大看板"
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all cursor-pointer shadow"
+            title={t.expandMainBtn}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all cursor-pointer shadow whitespace-nowrap"
           >
-            <Maximize2 className="w-2.5 h-2.5" />
-            <span className="text-[9px]">展开主界面</span>
+            <Maximize2 className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="text-[9px]">{t.expandMainBtn}</span>
           </button>
         </div>
       </div>
 
       {/* Content Body: Only Time & 梁文峰/梁文谷 Status */}
-      <div className={`p-3 sm:p-4 flex flex-col items-center justify-center ${compactMode ? 'min-w-[200px]' : 'min-w-[280px]'}`}>
+      <div className={`p-3 sm:p-4 flex flex-col items-center justify-center ${compactMode ? 'min-w-[210px]' : 'min-w-[280px]'}`}>
         {/* Status Pill */}
-        <div className="flex items-center gap-2 mb-1.5 pointer-events-none">
+        <div className="flex items-center gap-2 mb-1.5 pointer-events-none max-w-full">
           <span
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black border tracking-wide ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black border tracking-wide truncate ${
               isGu
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 animate-pulse'
                 : 'bg-amber-500/20 text-amber-300 border-amber-500/50'
             }`}
           >
-            {isGu ? <Moon className="w-3.5 h-3.5 text-emerald-400" /> : <Sun className="w-3.5 h-3.5 text-amber-400" />}
-            <span>【{phaseInfo.characterName}】</span>
-            <span className="text-[10px] font-normal opacity-90">({isGu ? '5折特惠' : '高峰原价'})</span>
+            {isGu ? <Moon className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" /> : <Sun className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
+            <span className="truncate">{phaseInfo.characterName}</span>
+            <span className="text-[10px] font-normal opacity-90 whitespace-nowrap">
+              ({isGu ? (language === 'zh' ? '5折' : '50%') : (language === 'zh' ? '原价' : '100%')})
+            </span>
           </span>
           {!compactMode && (
-            <span className="text-[10px] font-mono text-slate-400">
+            <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
               {phaseInfo.beijingWeekdayName}
             </span>
           )}
@@ -237,11 +286,11 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
         </div>
 
         {/* Next Switch Target & Countdown */}
-        <div className="flex items-center justify-between w-full mt-1 pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 pointer-events-none">
-          <span className="truncate max-w-[150px]">
-            目标: {phaseInfo.nextCharacterName} ({isGu ? '峰时' : '谷时5折'})
+        <div className="flex items-center justify-between w-full mt-1 pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 pointer-events-none gap-2">
+          <span className="min-w-0 flex-1 truncate pr-1">
+            {t.targetNext}: {phaseInfo.nextCharacterName}
           </span>
-          <span className="font-mono font-bold text-amber-300/90 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+          <span className="font-mono font-bold text-amber-300/90 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 flex-shrink-0 whitespace-nowrap">
             {phaseInfo.countdownFormatted}
           </span>
         </div>

@@ -3,17 +3,16 @@ import {
   Minimize2, 
   Moon, 
   Sun, 
-  Sparkles, 
   Globe, 
   Calendar, 
   Coins, 
-  Clock,
-  Volume2,
-  VolumeX
+  Volume2, 
+  VolumeX 
 } from 'lucide-react';
-import { ClockTheme, PhaseInfo, TimezoneOption } from '../types';
+import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
 import { formatTimeInZone, getLunarInfo } from '../utils/timeUtils';
 import { DEEPSEEK_MODELS } from '../data/deepseekPrices';
+import { TRANSLATIONS } from '../i18n/translations';
 
 interface FullscreenClockModalProps {
   isOpen: boolean;
@@ -21,6 +20,7 @@ interface FullscreenClockModalProps {
   now: Date;
   currentTimezone: TimezoneOption;
   currentTheme: ClockTheme;
+  language: Language;
   use24h: boolean;
   showMs: boolean;
   phaseInfo: PhaseInfo;
@@ -33,13 +33,15 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
   onClose,
   now,
   currentTimezone,
-  currentTheme,
+  language,
   use24h,
   showMs,
   phaseInfo,
   soundEnabled,
   onToggleSound,
 }) => {
+  const t = TRANSLATIONS[language];
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -52,10 +54,11 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
 
   if (!isOpen) return null;
 
-  const { timeStr, dateStr, offsetPart } = formatTimeInZone(now, currentTimezone.timeZone, use24h);
+  const { timeStr, dateStr, offsetPart } = formatTimeInZone(now, currentTimezone.timeZone, use24h, language);
   const lunar = getLunarInfo(now);
   const msString = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   const isGu = phaseInfo.currentPhase === 'gu';
+  const tzName = currentTimezone.names?.[language] || currentTimezone.name;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl text-slate-100 flex flex-col justify-between p-6 sm:p-12 select-none animate-in fade-in duration-200">
@@ -63,12 +66,12 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold tracking-wider">
-            <span>DEEPSEEK DESKTOP CLOCK</span>
+            <span>{t.appName}</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300">
             <Globe className="w-3.5 h-3.5 text-blue-400" />
-            <span>{currentTimezone.name} ({offsetPart || currentTimezone.offsetLabel})</span>
+            <span>{tzName} ({offsetPart || currentTimezone.offsetLabel})</span>
           </div>
         </div>
 
@@ -77,7 +80,7 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
           <button
             onClick={onToggleSound}
             className="p-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors cursor-pointer"
-            title={soundEnabled ? '静音' : '开启提示音'}
+            title={soundEnabled ? t.soundEnabledTitle : t.soundDisabledTitle}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
           </button>
@@ -88,7 +91,7 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
             className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold border border-slate-700 shadow-lg transition-colors cursor-pointer"
           >
             <Minimize2 className="w-4 h-4" />
-            <span>退出全屏 (ESC)</span>
+            <span>{t.exitFullscreen}</span>
           </button>
         </div>
       </div>
@@ -101,10 +104,12 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
             <Calendar className="w-4 h-4 text-blue-400" />
             <span>{dateStr}</span>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900/50 border border-slate-800/60 text-slate-400">
-            <span>{lunar.lunarStr}</span>
-            {lunar.solarTerm && <span className="ml-1.5 text-blue-400">· {lunar.solarTerm}</span>}
-          </div>
+          {language === 'zh' && (
+            <div className="px-3 py-1.5 rounded-xl bg-slate-900/50 border border-slate-800/60 text-slate-400">
+              <span>{lunar.lunarStr}</span>
+              {lunar.solarTerm && <span className="ml-1.5 text-blue-400">· {lunar.solarTerm}</span>}
+            </div>
+          )}
         </div>
 
         {/* Giant Digits */}
@@ -133,13 +138,13 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
             )}
             <div className="text-left">
               <div className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-                <span>当前时段：{phaseInfo.characterName}</span>
+                <span>{language === 'zh' ? '当前时段：' : language === 'en' ? 'Current Phase: ' : 'Текущая фаза: '}{phaseInfo.characterName}</span>
                 <span className="text-xs px-2 py-0.5 rounded-md bg-slate-950/60 border border-slate-800">
                   {phaseInfo.discountRate}
                 </span>
               </div>
               <div className="text-xs text-slate-300">
-                {isGu ? '夜间 50% 折扣半价特惠中' : '峰值标准费率高能输出中'} · 距切换还剩 {phaseInfo.countdownFormatted}
+                {isGu ? (language === 'zh' ? '50% 折扣半价特惠中' : language === 'en' ? '50% Off Discount active' : 'Скидка 50% активна') : (language === 'zh' ? '峰值标准费率运行中' : language === 'en' ? 'Standard peak pricing' : 'Стандартный пиковый тариф')} · {t.countdownLabel} {phaseInfo.countdownFormatted}
               </div>
             </div>
           </div>
@@ -150,7 +155,7 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-xs">
         <div className="flex items-center gap-2 font-semibold text-slate-300">
           <Coins className="w-4 h-4 text-blue-400" />
-          <span>DeepSeek 当前实时生效价格 (每 1M Tokens)：</span>
+          <span>{t.priceBoardTitle} (/ 1M Tokens)：</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -160,7 +165,7 @@ export const FullscreenClockModal: React.FC<FullscreenClockModalProps> = ({
               <div key={m.modelId} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800">
                 <span className="font-bold text-white">{m.modelName}:</span>
                 <span className="font-mono text-slate-300">
-                  入 ¥{pricing.inputMiss.toFixed(2)} (命中 ¥{pricing.inputHit.toFixed(2)}) / 出 ¥{pricing.output.toFixed(2)}
+                  ¥{pricing.inputMiss.toFixed(2)} (Hit: ¥{pricing.inputHit.toFixed(2)}) / Out: ¥{pricing.output.toFixed(2)}
                 </span>
               </div>
             );

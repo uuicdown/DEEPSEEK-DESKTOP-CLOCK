@@ -1,50 +1,63 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager,
+};
 
 fn main() {
-    // 1. 构建系统托盘右键菜单
-    let show_main = CustomMenuItem::new("show_main".to_string(), "📌 打开主界面 / 大屏");
-    let show_mini = CustomMenuItem::new("show_mini".to_string(), "⏱️ 切换桌面悬浮时钟 / 小屏");
-    let quit = CustomMenuItem::new("quit".to_string(), "❌ 退出程序");
-
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show_main)
-        .add_item(show_mini)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(quit);
-
-    let system_tray = SystemTray::new().with_menu(tray_menu);
-
     tauri::Builder::default()
-        .system_tray(system_tray)
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::MenuItemClick { id, .. } => {
-                let window = app.get_window("main").unwrap();
-                match id.as_str() {
+        .setup(|app| {
+            // 1. 构建系统托盘右键菜单
+            let show_main = MenuItem::with_id(app, "show_main", "📌 打开主界面 / 大屏", true, None::<&str>)?;
+            let show_mini = MenuItem::with_id(app, "show_mini", "⏱️ 切换桌面悬浮时钟 / 小屏", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "❌ 退出程序", true, None::<&str>)?;
+
+            let menu = Menu::with_items(app, &[&show_main, &show_mini, &quit])?;
+
+            // 2. 初始化托盘图标
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
                     "show_main" => {
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                        window.emit("tray-show-main", ()).unwrap();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.emit("tray-show-main", ());
+                        }
                     }
                     "show_mini" => {
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                        window.emit("tray-show-mini", ()).unwrap();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.emit("tray-show-mini", ());
+                        }
                     }
                     "quit" => {
                         std::process::exit(0);
                     }
                     _ => {}
-                }
-            }
-            // 单击托盘左键恢复显示主界面
-            SystemTrayEvent::LeftClick { .. } => {
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-                window.set_focus().unwrap();
-            }
-            _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

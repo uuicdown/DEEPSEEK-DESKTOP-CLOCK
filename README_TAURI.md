@@ -1,6 +1,6 @@
 # 🚀 DeepSeek 桌面时钟 · Tauri 打包 Windows .exe 全流程指南 (Zero to One)
 
-本项目采用 **Vite + React 18 + TypeScript** 作为现代化前端，并基于 **Rust + Tauri** 进行原生级极小体积封装。
+本项目采用 **Vite + React 18 + TypeScript** 作为现代化前端，并基于 **Rust + Tauri v2** 进行原生级极小体积封装。
 打包产出的 Windows `.exe` 安装包仅约 **3~5 MB**，日常运行内存仅 **20~40 MB**，且具备**沉浸式全屏、独立置顶悬浮小时钟、全局多主题联动与系统托盘驻留**四大桌面级特性！
 
 ---
@@ -12,7 +12,7 @@
 ### 1. 安装 Node.js (推荐 LTS 18 或 20+)
 * 官方下载地址：[https://nodejs.org/](https://nodejs.org/)
 * 安装后打开终端（PowerShell 或 CMD）验证：
-  ```bash
+  ```powershell
   node -v
   npm -v
   ```
@@ -21,7 +21,7 @@
 * 访问 Rust 官网下载安装器：[https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
 * 双击运行 `rustup-init.exe`，出现选择项时直接按 **回车 (默认选择 1. Proceed with installation (default))** 即可。
 * 安装完成后关闭并重新打开终端，验证安装成功：
-  ```bash
+  ```powershell
   rustc --version
   cargo --version
   ```
@@ -37,97 +37,37 @@
 在解压后的项目根目录下打开终端，执行以下步骤：
 
 ### 1. 安装前端项目依赖
-```bash
+```powershell
 npm install
 ```
 
 ### 2. 生成专属 Windows 桌面与托盘图标 (Icon)
 项目中已内置生成的 DeepSeek 风格高清图标（位于 `src/assets/images/`），运行 Tauri 官方图标命令行工具：
-```bash
+```powershell
 npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
 ```
 > 💡 **提示**：该命令会自动在 `src-tauri/icons/` 目录下生成 `icon.ico`、`32x32.png`、`128x128.png` 等全套 Windows 桌面与托盘图标文件。
 
 ---
 
-## ⚙️ 第三步：确认 Tauri 核心配置文件
+## ⚙️ 第三步：确认 Tauri 核心配置文件 (Tauri v2 规范)
 
-项目中已为您配置好 `src-tauri/` 目录结构与标识符（`com.Soren.deepseekclock`）：
+项目中已为您配置好符合最新 **Tauri v2** 规范的 `src-tauri/` 目录结构与标识符（`com.Soren.deepseekclock`）：
 
 ### 1. `src-tauri/tauri.conf.json`
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "DeepSeekClock",
+  "version": "0.1.0",
+  "identifier": "com.Soren.deepseekclock",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:3000",
-    "distDir": "../dist"
+    "devUrl": "http://localhost:3000",
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "DeepSeekClock",
-    "version": "0.1.0"
-  },
-  "tauri": {
-    "bundle": {
-      "active": true,
-      "category": "Utility",
-      "copyright": "Copyright © 2026 Soren. All rights reserved.",
-      "deb": {
-        "depends": []
-      },
-      "externalBin": [],
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "identifier": "com.Soren.deepseekclock",
-      "longDescription": "DeepSeek 桌面时钟 · 梁文峰/梁文谷峰谷时段追踪与 Token 计费看板",
-      "macOS": {
-        "frameworks": [],
-        "minimumSystemVersion": "",
-        "exceptionDomain": "",
-        "signingIdentity": null,
-        "entitlements": null
-      },
-      "resources": [],
-      "shortDescription": "DeepSeek 桌面时钟",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
-      }
-    },
-    "allowlist": {
-      "all": true,
-      "window": {
-        "all": true,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true,
-        "setFullscreen": true,
-        "setAlwaysOnTop": true,
-        "setSize": true,
-        "setMinSize": true,
-        "setMaxSize": true,
-        "setResizable": true,
-        "setTitle": true,
-        "setPosition": true,
-        "center": true
-      }
-    },
-    "systemTray": {
-      "iconPath": "icons/icon.ico",
-      "iconAsTemplate": true
-    },
+  "app": {
     "windows": [
       {
         "title": "DeepSeek 桌面时钟 · 梁文峰/梁文谷时钟看板",
@@ -142,60 +82,136 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
         "alwaysOnTop": false,
         "transparent": false
       }
-    ]
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "copyright": "Copyright © 2026 Soren. All rights reserved.",
+    "shortDescription": "DeepSeek 桌面时钟",
+    "longDescription": "DeepSeek 桌面时钟 · 梁文峰/梁文谷峰谷时段追踪与 Token 计费看板",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
   }
 }
 ```
 
-### 2. `src-tauri/src/main.rs`（系统托盘与三项菜单）
+### 2. `src-tauri/capabilities/default.json`（Tauri v2 窗口控制权限配置）
+```json
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-size",
+    "core:window:allow-set-resizable",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-center",
+    "core:event:default"
+  ]
+}
+```
+
+### 3. `src-tauri/Cargo.toml`
+```toml
+[package]
+name = "deepseek-clock"
+version = "0.1.0"
+description = "DeepSeek Clock Desktop Application by Soren"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [ "tray-icon" ] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+```
+
+### 4. `src-tauri/src/main.rs`（系统托盘与三项菜单）
 ```rust
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager,
+};
 
 fn main() {
-    // 1. 构建系统托盘菜单（大屏、小屏、退出）
-    let show_main = CustomMenuItem::new("show_main".to_string(), "📌 打开主界面 / 大屏");
-    let show_mini = CustomMenuItem::new("show_mini".to_string(), "⏱️ 切换桌面悬浮时钟 / 小屏");
-    let quit = CustomMenuItem::new("quit".to_string(), "❌ 退出程序");
-
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show_main)
-        .add_item(show_mini)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(quit);
-
-    let system_tray = SystemTray::new().with_menu(tray_menu);
-
     tauri::Builder::default()
-        .system_tray(system_tray)
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::MenuItemClick { id, .. } => {
-                let window = app.get_window("main").unwrap();
-                match id.as_str() {
+        .setup(|app| {
+            // 1. 构建系统托盘右键菜单
+            let show_main = MenuItem::with_id(app, "show_main", "📌 打开主界面 / 大屏", true, None::<&str>)?;
+            let show_mini = MenuItem::with_id(app, "show_mini", "⏱️ 切换桌面悬浮时钟 / 小屏", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "❌ 退出程序", true, None::<&str>)?;
+
+            let menu = Menu::with_items(app, &[&show_main, &show_mini, &quit])?;
+
+            // 2. 初始化托盘图标
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
                     "show_main" => {
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                        window.emit("tray-show-main", ()).unwrap();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.emit("tray-show-main", ());
+                        }
                     }
                     "show_mini" => {
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                        window.emit("tray-show-mini", ()).unwrap();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.emit("tray-show-mini", ());
+                        }
                     }
                     "quit" => {
                         std::process::exit(0);
                     }
                     _ => {}
-                }
-            }
-            // 单击托盘图标快速激活窗口
-            SystemTrayEvent::LeftClick { .. } => {
-                let window = app.get_window("main").unwrap();
-                window.show().unwrap();
-                window.set_focus().unwrap();
-            }
-            _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -208,7 +224,7 @@ fn main() {
 
 在项目根目录下，依次执行两条命令：
 
-```bash
+```powershell
 # 1. 编译前端生产静态文件
 npm run build
 

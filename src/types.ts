@@ -69,9 +69,12 @@ export interface PhaseInfo {
   beijingSecond: number;
   beijingTimeString: string;
   isWeekend: boolean;
+  isHoliday: boolean;
+  holidayName?: string;
+  isAllDayGu: boolean;
   beijingDayOfWeek: number; // 0 for Sunday, 1 for Monday, ..., 6 for Saturday
   beijingWeekdayName: string;
-  currentPeriodName: string; // e.g. "上午高峰期", "午间谷时", "下午高峰期", "夜间谷时", "周末谷时"
+  currentPeriodName: string; // e.g. "上午高峰期", "午间谷时", "下午高峰期", "夜间谷时", "周末全天谷时", "法定节假日谷时"
   nextPhaseTime: Date;
   nextPhaseName: string;
   nextCharacterName: string;

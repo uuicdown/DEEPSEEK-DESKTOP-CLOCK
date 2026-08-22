@@ -323,7 +323,7 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
             {isGu ? <Moon className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" /> : <Sun className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 flex-shrink-0" />}
             <span className="truncate">{phaseInfo.characterName}</span>
             <span className="text-[10px] font-normal opacity-90 whitespace-nowrap">
-              ({isGu ? (language === 'zh' ? '5折' : '50%') : (language === 'zh' ? '原价' : '100%')})
+              ({phaseInfo.isHoliday ? `${phaseInfo.holidayName} 5折` : phaseInfo.isWeekend ? (language === 'zh' ? '周末 5折' : 'Weekend 50%') : isGu ? (language === 'zh' ? '5折' : '50%') : (language === 'zh' ? '原价' : '100%')})
             </span>
           </span>
           {!compactMode && (

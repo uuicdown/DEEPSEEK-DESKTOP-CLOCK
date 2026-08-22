@@ -69,59 +69,82 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
   const seg4Dn = getSegmentDayNight(16.0, 'feng');
   const seg5Dn = getSegmentDayNight(21.0, 'gu');
 
+  const isAllDayGu = phaseInfo.isAllDayGu;
+
   // Single clean continuous 24-Hour Timeline Segments (UTC+8):
-  const segments = [
-    {
-      id: 'gu-1',
-      widthPercent: 37.5,
-      type: 'gu' as const,
-      isDay: seg1Dn.isDay,
-      label: seg1Dn.label,
-      isActive: beijingHour >= 0 && beijingHour < 9,
-    },
-    {
-      id: 'feng-1',
-      widthPercent: 12.5,
-      type: 'feng' as const,
-      isDay: seg2Dn.isDay,
-      label: seg2Dn.label,
-      isActive: beijingHour >= 9 && beijingHour < 12,
-    },
-    {
-      id: 'gu-2',
-      widthPercent: 8.333,
-      type: 'gu' as const,
-      isDay: seg3Dn.isDay,
-      label: seg3Dn.label,
-      isActive: beijingHour >= 12 && beijingHour < 14,
-    },
-    {
-      id: 'feng-2',
-      widthPercent: 16.667,
-      type: 'feng' as const,
-      isDay: seg4Dn.isDay,
-      label: seg4Dn.label,
-      isActive: beijingHour >= 14 && beijingHour < 18,
-    },
-    {
-      id: 'gu-3',
-      widthPercent: 25.0,
-      type: 'gu' as const,
-      isDay: seg5Dn.isDay,
-      label: seg5Dn.label,
-      isActive: beijingHour >= 18 && beijingHour < 24,
-    },
-  ];
+  const segments = isAllDayGu
+    ? [
+        {
+          id: 'gu-all-day',
+          widthPercent: 100,
+          type: 'gu' as const,
+          isDay: true,
+          label: phaseInfo.isHoliday
+            ? (language === 'zh' ? `🎉 ${phaseInfo.holidayName || '法定节假日'} · 全天 24 小时 5 折特惠` : language === 'en' ? `🎉 ${phaseInfo.holidayName || 'Holiday'} · 24h 50% Off` : `🎉 ${phaseInfo.holidayName || 'Праздник'} · Скидка 50%`)
+            : (language === 'zh' ? '🎉 周末双休 · 全天 24 小时 5 折特惠' : language === 'en' ? '🎉 Weekend · 24h 50% Off' : '🎉 Выходной день · Скидка 50%'),
+          isActive: true,
+        },
+      ]
+    : [
+        {
+          id: 'gu-1',
+          widthPercent: 37.5,
+          type: 'gu' as const,
+          isDay: seg1Dn.isDay,
+          label: seg1Dn.label,
+          isActive: beijingHour >= 0 && beijingHour < 9,
+        },
+        {
+          id: 'feng-1',
+          widthPercent: 12.5,
+          type: 'feng' as const,
+          isDay: seg2Dn.isDay,
+          label: seg2Dn.label,
+          isActive: beijingHour >= 9 && beijingHour < 12,
+        },
+        {
+          id: 'gu-2',
+          widthPercent: 8.333,
+          type: 'gu' as const,
+          isDay: seg3Dn.isDay,
+          label: seg3Dn.label,
+          isActive: beijingHour >= 12 && beijingHour < 14,
+        },
+        {
+          id: 'feng-2',
+          widthPercent: 16.667,
+          type: 'feng' as const,
+          isDay: seg4Dn.isDay,
+          label: seg4Dn.label,
+          isActive: beijingHour >= 14 && beijingHour < 18,
+        },
+        {
+          id: 'gu-3',
+          widthPercent: 25.0,
+          type: 'gu' as const,
+          isDay: seg5Dn.isDay,
+          label: seg5Dn.label,
+          isActive: beijingHour >= 18 && beijingHour < 24,
+        },
+      ];
 
   // Ruler timestamp markings below the single timeline
-  const rulerTicks = [
-    { label: t.tick0, percent: 0, type: 'default' },
-    { label: t.tick9, percent: 37.5, type: 'feng' },
-    { label: t.tick12, percent: 50.0, type: 'gu' },
-    { label: t.tick14, percent: 58.333, type: 'feng' },
-    { label: t.tick18, percent: 75.0, type: 'gu' },
-    { label: t.tick24, percent: 100, type: 'default' },
-  ];
+  const rulerTicks = isAllDayGu
+    ? [
+        { label: t.tick0, percent: 0, type: 'gu' },
+        { label: '06:00', percent: 25, type: 'gu' },
+        { label: '12:00', percent: 50, type: 'gu' },
+        { label: '18:00', percent: 75, type: 'gu' },
+        { label: t.tick24, percent: 100, type: 'gu' },
+      ]
+    : [
+        { label: t.tick0, percent: 0, type: 'default' },
+        { label: t.tick9, percent: 37.5, type: 'feng' },
+        { label: t.tick12, percent: 50.0, type: 'gu' },
+        { label: t.tick14, percent: 58.333, type: 'feng' },
+        { label: t.tick18, percent: 75.0, type: 'gu' },
+        { label: t.tick24, percent: 100, type: 'default' },
+      ];
 
   // Current Needle Position
   const needlePercent = Math.min(100, Math.max(0, phaseInfo.dayProgressPercent));
@@ -198,6 +221,16 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                 <span className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700">
                   {phaseInfo.beijingWeekdayName}
                 </span>
+                {phaseInfo.isHoliday && (
+                  <span className="text-xs font-bold text-amber-300 px-2 py-0.5 rounded-lg bg-amber-950/70 border border-amber-600/50">
+                    {phaseInfo.holidayName || '法定节假日'}
+                  </span>
+                )}
+                {phaseInfo.isWeekend && !phaseInfo.isHoliday && (
+                  <span className="text-xs font-bold text-emerald-300 px-2 py-0.5 rounded-lg bg-emerald-950/70 border border-emerald-600/50">
+                    {language === 'zh' ? '周末双休' : language === 'en' ? 'Weekend' : 'Выходной'}
+                  </span>
+                )}
               </div>
 
               <p className="text-sm sm:text-base font-medium text-slate-300 flex items-center gap-2">

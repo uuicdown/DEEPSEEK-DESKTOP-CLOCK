@@ -6,15 +6,19 @@ import {
   Moon, 
   Volume2, 
   VolumeX, 
-  Sparkles, 
   RotateCcw,
-  ExternalLink,
   X
 } from 'lucide-react';
 import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
 import { formatTimeInZone, isDaytimeInZone } from '../utils/timeUtils';
 import { TRANSLATIONS } from '../i18n/translations';
-import { isTauriEnv, applyMiniClockWindow, restoreMainDashboardWindow } from '../utils/tauriWindow';
+import { 
+  isTauriEnv, 
+  applyMiniClockWindow, 
+  restoreMainDashboardWindow, 
+  closeDesktopWindow,
+  startDesktopDragging 
+} from '../utils/tauriWindow';
 import appIconImg from '../assets/images/deepseek_clock_icon_1787300567789.jpg';
 
 interface MiniFloatingClockProps {
@@ -28,7 +32,6 @@ interface MiniFloatingClockProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onRestoreMain: () => void;
-  onCloseMini?: () => void;
 }
 
 export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
@@ -42,7 +45,6 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
   soundEnabled,
   onToggleSound,
   onRestoreMain,
-  onCloseMini,
 }) => {
   const clockRef = useRef<HTMLDivElement>(null);
   const t = TRANSLATIONS[language];
@@ -50,15 +52,14 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
 
   // Position as left (x) and top (y) for web in-page floating
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
-    const defaultWidth = 300;
-    const defaultHeight = 160;
+    const defaultWidth = 310;
+    const defaultHeight = 135;
     const initialX = typeof window !== 'undefined' ? Math.max(16, window.innerWidth - defaultWidth - 24) : 100;
     const initialY = typeof window !== 'undefined' ? Math.max(16, window.innerHeight - defaultHeight - 24) : 100;
     return { x: initialX, y: initialY };
   });
 
   const [isDragging, setIsDragging] = useState(false);
-  const [compactMode, setCompactMode] = useState<boolean>(false);
 
   // Apply Tauri mini window resizing on mount
   useEffect(() => {
@@ -72,6 +73,14 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       await restoreMainDashboardWindow();
     }
     onRestoreMain();
+  };
+
+  const handleClose = async () => {
+    if (isTauri) {
+      await closeDesktopWindow();
+    } else {
+      onRestoreMain();
+    }
   };
 
   // Drag tracking refs for in-browser fallback
@@ -120,7 +129,10 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
   // Pointer Down to start dragging with pointer capture (for web mode)
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return;
-    if (isTauri) return; // In Tauri, handled by data-tauri-drag-region natively
+    if (isTauri) {
+      startDesktopDragging();
+      return;
+    }
     
     const targetEl = e.currentTarget;
     try {
@@ -155,8 +167,8 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
 
     dragRef.current.rafId = requestAnimationFrame(() => {
       const clockEl = clockRef.current;
-      const width = clockEl ? clockEl.offsetWidth : 280;
-      const height = clockEl ? clockEl.offsetHeight : 140;
+      const width = clockEl ? clockEl.offsetWidth : 310;
+      const height = clockEl ? clockEl.offsetHeight : 135;
 
       const deltaX = currentX - dragRef.current.startX;
       const deltaY = currentY - dragRef.current.startY;
@@ -213,6 +225,7 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       ref={clockRef}
       id="mini-floating-clock-container"
       data-tauri-drag-region
+      onDoubleClick={handleRestore}
       style={
         isTauri
           ? {
@@ -227,6 +240,8 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
               position: 'fixed',
               left: 0,
               top: 0,
+              width: '310px',
+              height: '135px',
               transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
               zIndex: 9999,
               touchAction: 'none',
@@ -237,43 +252,50 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className={`select-none shadow-2xl ${isTauri ? 'rounded-none h-screen w-screen' : 'rounded-3xl'} backdrop-blur-2xl transition-all duration-300 ${
+      className={`select-none overflow-hidden ${isTauri ? 'rounded-none h-full w-full' : 'rounded-2xl shadow-2xl'} backdrop-blur-2xl transition-all duration-200 border border-slate-700/60 ${
         isLight
           ? isGu
-            ? 'bg-white/95 text-slate-800 shadow-[0_15px_40px_-5px_rgba(16,185,129,0.3)]'
-            : 'bg-white/95 text-slate-800 shadow-[0_15px_40px_-5px_rgba(245,158,11,0.3)]'
+            ? 'bg-white/95 text-slate-800 shadow-[0_10px_30px_-5px_rgba(16,185,129,0.3)]'
+            : 'bg-white/95 text-slate-800 shadow-[0_10px_30px_-5px_rgba(245,158,11,0.3)]'
           : isGu
-            ? `${currentTheme.cardBgClass} ${currentTheme.textColor} shadow-[0_15px_40px_-5px_rgba(16,185,129,0.35)]`
-            : `${currentTheme.cardBgClass} ${currentTheme.textColor} shadow-[0_15px_40px_-5px_rgba(245,158,11,0.35)]`
-      } ${!isTauri && isDragging ? 'cursor-grabbing scale-[1.02] shadow-blue-500/40' : !isTauri ? 'cursor-grab' : ''} animate-in fade-in duration-200`}
+            ? `${currentTheme.cardBgClass} ${currentTheme.textColor} shadow-[0_10px_30px_-5px_rgba(16,185,129,0.35)]`
+            : `${currentTheme.cardBgClass} ${currentTheme.textColor} shadow-[0_10px_30px_-5px_rgba(245,158,11,0.35)]`
+      } ${!isTauri && isDragging ? 'cursor-grabbing scale-[1.01]' : 'cursor-default'} animate-in fade-in duration-200`}
     >
       {/* Mini Title Bar / Drag handle */}
       <div 
         id="mini-clock-drag-bar"
         data-tauri-drag-region
-        className={`flex items-center justify-between px-3.5 py-2 text-[10px] ${isTauri ? 'rounded-none' : 'rounded-t-3xl'} gap-2 transition-colors cursor-move ${
+        onMouseDown={(e) => {
+          if (isTauri && !(e.target as HTMLElement).closest('button')) {
+            startDesktopDragging();
+          }
+        }}
+        className={`flex items-center justify-between px-2.5 py-1 text-[11px] gap-2 transition-colors cursor-move border-b border-slate-700/40 ${
           isLight 
-            ? 'text-slate-600 bg-slate-100/90' 
-            : 'text-slate-400 bg-slate-900/90'
+            ? 'text-slate-700 bg-slate-100/90' 
+            : 'text-slate-300 bg-slate-900/90'
         }`}
       >
-        <div className={`flex items-center gap-1.5 font-semibold pointer-events-none truncate ${
-          isLight ? 'text-slate-800' : 'text-slate-200'
-        }`}>
+        <div 
+          data-tauri-drag-region
+          className={`flex items-center gap-1.5 font-bold pointer-events-none truncate ${
+            isLight ? 'text-slate-800' : 'text-slate-100'
+          }`}
+        >
           <img 
             src={appIconImg} 
             alt="Icon" 
-            className="w-3.5 h-3.5 rounded object-cover" 
+            className="w-3.5 h-3.5 rounded object-cover flex-shrink-0" 
           />
-          <Move className={`w-3 h-3 flex-shrink-0 ${isDragging ? currentTheme.accentText : isLight ? 'text-slate-500' : 'text-slate-400'}`} />
-          <span className="truncate">{t.miniClock}</span>
+          <span className="truncate text-[11px]">DeepSeek 桌面小时钟</span>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           {!isTauri && (
             <button
               onClick={handleResetPosition}
               title={language === 'zh' ? '靠右下停靠' : 'Dock Bottom-Right'}
-              className={`p-1 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1 rounded-md transition-colors cursor-pointer ${
                 isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -281,68 +303,79 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
             </button>
           )}
           <button
-            onClick={() => setCompactMode(!compactMode)}
-            title={compactMode ? (language === 'zh' ? '展开模式' : 'Expand') : (language === 'zh' ? '极简超小模式' : 'Compact')}
-            className={`p-1 rounded-lg transition-colors cursor-pointer ${
-              isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Sparkles className="w-2.5 h-2.5" />
-          </button>
-          <button
             onClick={onToggleSound}
             title={soundEnabled ? t.soundEnabledTitle : t.soundDisabledTitle}
-            className={`p-1 rounded-lg transition-colors cursor-pointer ${
+            className={`p-1 rounded-md transition-colors cursor-pointer ${
               isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            {soundEnabled ? <Volume2 className={`w-2.5 h-2.5 ${currentTheme.accentText}`} /> : <VolumeX className="w-2.5 h-2.5" />}
+            {soundEnabled ? <Volume2 className={`w-3 h-3 ${currentTheme.accentText}`} /> : <VolumeX className="w-3 h-3" />}
           </button>
           <button
             id="restore-main-view-button"
             onClick={handleRestore}
-            title={t.expandMainBtn}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all cursor-pointer shadow whitespace-nowrap"
+            title="还原至完整大看板 (双击任意处也可还原)"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all cursor-pointer shadow whitespace-nowrap text-[10px]"
           >
             <Maximize2 className="w-2.5 h-2.5 flex-shrink-0" />
-            <span className="text-[10px] font-semibold">{t.expandMainBtn}</span>
+            <span>{t.expandMainBtn}</span>
+          </button>
+          <button
+            id="mini-close-button"
+            onClick={handleClose}
+            title={language === 'zh' ? '关闭 / 退出' : 'Close'}
+            className="p-1 rounded-md bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white transition-colors cursor-pointer"
+          >
+            <X className="w-3 h-3" />
           </button>
         </div>
       </div>
 
       {/* Content Body: Only Time & 梁文峰/梁文谷 Status */}
-      <div className={`p-3.5 sm:p-4 flex flex-col items-center justify-center ${compactMode ? 'min-w-[210px]' : 'min-w-[280px]'}`}>
+      <div 
+        data-tauri-drag-region
+        onMouseDown={(e) => {
+          if (isTauri && !(e.target as HTMLElement).closest('button')) {
+            startDesktopDragging();
+          }
+        }}
+        className="p-2 px-3 flex flex-col items-center justify-between h-[calc(100%-28px)]"
+      >
         {/* Status Pill */}
-        <div className="flex items-center gap-2 mb-1.5 pointer-events-none max-w-full">
+        <div 
+          data-tauri-drag-region
+          className="flex items-center justify-between w-full pointer-events-none"
+        >
           <span
-            className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black tracking-wide truncate shadow-sm ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black tracking-wide truncate shadow-sm ${
               isGu
                 ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-300 animate-pulse'
                 : 'bg-amber-500/20 text-amber-600 dark:text-amber-300'
             }`}
           >
             {isDaytime ? (
-              <Sun className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 flex-shrink-0" />
+              <Sun className="w-3 h-3 text-amber-500 dark:text-amber-400 flex-shrink-0" />
             ) : (
-              <Moon className="w-3.5 h-3.5 text-indigo-400 dark:text-indigo-300 flex-shrink-0" />
+              <Moon className="w-3 h-3 text-indigo-400 dark:text-indigo-300 flex-shrink-0" />
             )}
             <span className="truncate">{phaseInfo.characterName}</span>
-            <span className="text-[10px] font-normal opacity-90 whitespace-nowrap">
-              ({phaseInfo.isHoliday ? `${phaseInfo.holidayName} 5折` : phaseInfo.isWeekend ? (language === 'zh' ? '周末 5折' : 'Weekend 50%') : isGu ? (language === 'zh' ? '5折' : '50%') : (language === 'zh' ? '原价' : '100%')})
+            <span className="text-[10px] font-bold opacity-90 whitespace-nowrap">
+              ({phaseInfo.isHoliday ? `${phaseInfo.holidayName} 5折` : phaseInfo.isWeekend ? (language === 'zh' ? '周末 5折' : 'Weekend 50%') : isGu ? (language === 'zh' ? '5折优惠' : '50% Off') : (language === 'zh' ? '原价' : '100%')})
             </span>
           </span>
-          {!compactMode && (
-            <span className={`text-[10px] font-mono whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              {phaseInfo.beijingWeekdayName}
-            </span>
-          )}
+          <span className={`text-[10px] font-mono whitespace-nowrap ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            {phaseInfo.beijingWeekdayName}
+          </span>
         </div>
 
         {/* Large Crisp Digital Time Display */}
-        <div className={`flex items-baseline justify-center font-mono font-black tracking-wider my-1 drop-shadow-md pointer-events-none ${
-          isLight ? 'text-slate-900' : currentTheme.textColor
-        }`}>
-          <span className={`${compactMode ? 'text-2xl' : 'text-3xl sm:text-4xl'} font-bold tabular-nums`}>
+        <div 
+          data-tauri-drag-region
+          className={`flex items-baseline justify-center font-mono font-black tracking-wider drop-shadow-md pointer-events-none ${
+            isLight ? 'text-slate-900' : currentTheme.textColor
+          }`}
+        >
+          <span className="text-3xl font-black tabular-nums">
             {timeStr}
           </span>
           {showMs && (
@@ -353,16 +386,19 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
         </div>
 
         {/* Next Switch Target & Countdown */}
-        <div className={`flex items-center justify-between w-full mt-1.5 pt-1.5 text-[10px] pointer-events-none gap-2 ${
-          isLight ? 'text-slate-500' : 'text-slate-400'
-        }`}>
+        <div 
+          data-tauri-drag-region
+          className={`flex items-center justify-between w-full text-[10px] pointer-events-none gap-2 ${
+            isLight ? 'text-slate-600' : 'text-slate-400'
+          }`}
+        >
           <span className="min-w-0 flex-1 truncate pr-1">
-            {t.targetNext}: {phaseInfo.nextCharacterName}
+            {t.targetNext}: <strong className="text-slate-200">{phaseInfo.nextCharacterName}</strong>
           </span>
-          <span className={`font-mono font-bold px-2 py-0.5 rounded-lg flex-shrink-0 whitespace-nowrap shadow-sm ${
+          <span className={`font-mono font-bold px-1.5 py-0.5 rounded flex-shrink-0 whitespace-nowrap shadow-sm ${
             isLight 
               ? 'text-amber-700 bg-amber-50' 
-              : 'text-amber-300/90 bg-slate-900'
+              : 'text-amber-300 bg-slate-900 border border-amber-500/20'
           }`}>
             {phaseInfo.countdownFormatted}
           </span>
@@ -371,4 +407,5 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
     </div>
   );
 };
+
 

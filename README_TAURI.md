@@ -54,7 +54,7 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
 
 项目中已为您配置好符合最新 **Tauri v2** 规范的 `src-tauri/` 目录结构与标识符（`com.Soren.deepseekclock`）：
 
-### 1. `src-tauri/tauri.conf.json`（无边框沉浸式窗口配置）
+### 1. `src-tauri/tauri.conf.json`（无边框沉浸式窗口与全局 API 配置）
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
@@ -68,13 +68,15 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
     "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "DeepSeek 桌面时钟 · 梁文峰/梁文谷时钟看板",
-        "width": 1100,
-        "height": 820,
-        "minWidth": 300,
-        "minHeight": 150,
+        "width": 1000,
+        "height": 760,
+        "minWidth": 280,
+        "minHeight": 120,
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
@@ -110,7 +112,7 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
 }
 ```
 
-### 2. `src-tauri/capabilities/default.json`（Tauri v2 窗口拖拽与无边框控制权限配置）
+### 2. `src-tauri/capabilities/default.json`（Tauri v2 窗口拖拽、尺寸变更与事件权限配置）
 ```json
 {
   "$schema": "../gen/schemas/desktop-schema.json",
@@ -136,7 +138,9 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
     "core:window:allow-is-maximized",
     "core:window:allow-set-decorations",
     "core:window:allow-set-shadow",
-    "core:event:default"
+    "core:event:default",
+    "core:event:allow-listen",
+    "core:event:allow-emit"
   ]
 }
 ```

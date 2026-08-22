@@ -320,57 +320,73 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             )}
           </div>
 
-          {/* Fullscreen Zen Mode */}
-          <button
-            id="fullscreen-clock-button"
-            onClick={onOpenFullscreen}
-            title={t.fullscreenTitle}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all cursor-pointer whitespace-nowrap hover:scale-105"
-          >
-            <Maximize2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="hidden sm:inline">{t.fullscreenBtn}</span>
-          </button>
-
           {/* Minimize to Floating Mini Clock */}
           <button
             id="minimize-to-mini-button"
             onClick={onMinimizeToMini}
             title={t.minimizeTitle}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-emerald-300 hover:text-white text-xs font-semibold shadow-md transition-all cursor-pointer whitespace-nowrap hover:scale-105"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer whitespace-nowrap hover:scale-105"
           >
-            <Minimize2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            <span className="hidden sm:inline">{t.minimizeBtn}</span>
+            <Minimize2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-bold">{t.minimizeBtn}</span>
           </button>
 
-          {/* Frameless Desktop Window Controls (Tauri Desktop App) */}
-          {isTauriEnv() && (
-            <div className="flex items-center gap-1 pl-1 ml-1 border-l border-slate-700/60">
-              <button
-                id="desktop-minimize-btn"
-                onClick={minimizeDesktopWindow}
-                title={language === 'zh' ? '最小化到任务栏' : language === 'en' ? 'Minimize' : 'Свернуть'}
-                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <button
-                id="desktop-maximize-btn"
-                onClick={toggleMaximizeDesktopWindow}
-                title={language === 'zh' ? '最大化 / 还原窗口' : language === 'en' ? 'Maximize / Restore' : 'Развернуть'}
-                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-              >
-                <Square className="w-3 h-3" />
-              </button>
-              <button
-                id="desktop-close-btn"
-                onClick={closeDesktopWindow}
-                title={language === 'zh' ? '关闭程序' : language === 'en' ? 'Close' : 'Закрыть'}
-                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-600/90 text-slate-300 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+          {/* Fullscreen Zen Mode */}
+          <button
+            id="fullscreen-clock-button"
+            onClick={onOpenFullscreen}
+            title={t.fullscreenTitle}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold shadow-md transition-all cursor-pointer whitespace-nowrap hover:scale-105"
+          >
+            <Maximize2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="hidden sm:inline">{t.fullscreenBtn}</span>
+          </button>
+
+          {/* Frameless Desktop / Web Window Controls */}
+          <div className="flex items-center gap-1 pl-1 sm:pl-2 ml-1 border-l border-slate-700/80">
+            <button
+              id="desktop-minimize-btn"
+              onClick={async () => {
+                if (isTauriEnv()) {
+                  await minimizeDesktopWindow();
+                } else {
+                  onMinimizeToMini();
+                }
+              }}
+              title={language === 'zh' ? '最小化到任务栏' : language === 'en' ? 'Minimize' : 'Свернуть'}
+              className="p-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <button
+              id="desktop-maximize-btn"
+              onClick={async () => {
+                if (isTauriEnv()) {
+                  await toggleMaximizeDesktopWindow();
+                } else {
+                  onOpenFullscreen();
+                }
+              }}
+              title={language === 'zh' ? '最大化 / 还原窗口' : language === 'en' ? 'Maximize / Restore' : 'Развернуть'}
+              className="p-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <Square className="w-3 h-3" />
+            </button>
+            <button
+              id="desktop-close-btn"
+              onClick={async () => {
+                if (isTauriEnv()) {
+                  await closeDesktopWindow();
+                } else {
+                  onMinimizeToMini();
+                }
+              }}
+              title={language === 'zh' ? '关闭 / 退出程序' : language === 'en' ? 'Close' : 'Закрыть'}
+              className="p-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-red-600 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 

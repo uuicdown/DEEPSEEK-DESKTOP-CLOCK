@@ -3,7 +3,7 @@
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, LogicalSize, Size,
 };
 
 fn main() {
@@ -11,7 +11,7 @@ fn main() {
         .setup(|app| {
             // 1. 构建系统托盘右键菜单
             let show_main = MenuItem::with_id(app, "show_main", "📌 打开主界面 / 大屏", true, None::<&str>)?;
-            let show_mini = MenuItem::with_id(app, "show_mini", "⏱️ 切换桌面悬浮时钟 / 小屏", true, None::<&str>)?;
+            let show_mini = MenuItem::with_id(app, "show_mini", "⏱️ 切换桌面悬浮小时钟", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "❌ 退出程序", true, None::<&str>)?;
 
             let menu = Menu::with_items(app, &[&show_main, &show_mini, &quit])?;
@@ -24,6 +24,11 @@ fn main() {
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show_main" => {
                         if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.set_resizable(true);
+                            let _ = window.set_always_on_top(false);
+                            let _ = window.set_size(Size::Logical(LogicalSize { width: 1000.0, height: 760.0 }));
+                            let _ = window.center();
+                            let _ = window.unminimize();
                             let _ = window.show();
                             let _ = window.set_focus();
                             let _ = window.emit("tray-show-main", ());
@@ -31,6 +36,10 @@ fn main() {
                     }
                     "show_mini" => {
                         if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.set_resizable(false);
+                            let _ = window.set_always_on_top(true);
+                            let _ = window.set_size(Size::Logical(LogicalSize { width: 310.0, height: 135.0 }));
+                            let _ = window.unminimize();
                             let _ = window.show();
                             let _ = window.set_focus();
                             let _ = window.emit("tray-show-mini", ());
@@ -50,6 +59,7 @@ fn main() {
                     {
                         let app = tray.app_handle();
                         if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.unminimize();
                             let _ = window.show();
                             let _ = window.set_focus();
                         }

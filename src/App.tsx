@@ -131,7 +131,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen w-full bg-gradient-to-b ${currentTheme.bgClass} flex flex-col items-center justify-start p-4 sm:p-6 md:p-8 font-sans selection:bg-blue-600 selection:text-white transition-colors duration-500`}>
+    <div className={`w-full ${isMinimized ? 'h-screen overflow-hidden bg-slate-950/90 flex items-center justify-center p-0 m-0' : `min-h-screen bg-gradient-to-b ${currentTheme.bgClass} flex flex-col items-center justify-start p-3 sm:p-5 md:p-7`} font-sans selection:bg-blue-600 selection:text-white transition-colors duration-300`}>
       {/* Main Big Dashboard - Hidden when Minimized into Floating Gadget */}
       {!isMinimized && (
         <div className="w-full max-w-6xl mx-auto flex flex-col items-center animate-in fade-in duration-300">
@@ -171,7 +171,7 @@ export default function App() {
           />
 
           {/* Footer info */}
-          <footer className="w-full mt-10 py-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <footer className="w-full mt-8 py-3 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div>
               <span>{t.footerNote}</span>
             </div>

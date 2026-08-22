@@ -69,7 +69,9 @@ export interface Translations {
   priceBoardDesc: string;
   filterAll: string;
   filterFlash: string;
+  filterVision: string;
   filterPro: string;
+  filterReasoning: string;
   cny: string;
   usd: string;
   flagship: string;
@@ -193,13 +195,15 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     ruleValleyDesc: '周末（周六、周日）全天 24 小时、国家法定节假日全天 24 小时，以及工作日 00:00 - 09:00、12:00 - 14:00 与 18:00 - 24:00。API 价格立享 5 折半价！',
     ruleBestPractice: '跑批省钱建议：将非实时批量任务、数据集构建、知识库切片评测安排在「梁文谷」空闲谷时（周末双休全天、法定假期全天、夜间 18:00 后或午休 12:00-14:00）运行，API 成本直降 50%！',
     
-    priceBoardTitle: 'DeepSeek-V4 Flash / Pro 价格看板',
+    priceBoardTitle: 'DeepSeek 官方全系列模型价格看板',
     priceBoardSubGu: '⚡ 梁文谷 5 折特惠中',
     priceBoardSubFeng: '☀️ 梁文峰 原价运行中',
     priceBoardDesc: '依据北京时间判定：工作日高峰原价，周末/法定节假日全天及工作日夜间/午间享 50% 半价优惠',
     filterAll: '全部',
     filterFlash: 'V4 Flash',
+    filterVision: 'V4 Vision (多模态)',
     filterPro: 'V4 Pro',
+    filterReasoning: 'R1 / V3',
     cny: '人民币 ¥',
     usd: '美元 $',
     flagship: '新旗舰',
@@ -317,13 +321,15 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     ruleValleyDesc: 'Weekends (Sat & Sun) all 24 hours, National Statutory Holidays all 24 hours, and workday 00:00 - 09:00, 12:00 - 14:00, 18:00 - 24:00 (UTC+8). 50% discount on all API calls!',
     ruleBestPractice: 'Cost-Saving Tip: Schedule offline batch processing, dataset synthesis, and evaluations during [Liang Wentrough] off-peak hours (all-day weekends, holidays, after 18:00 or 12:00-14:00) to cut API spend by 50%!',
     
-    priceBoardTitle: 'DeepSeek-V4 Flash / Pro Pricing Matrix',
+    priceBoardTitle: 'DeepSeek Official Model Pricing Matrix',
     priceBoardSubGu: '⚡ 50% Off Valley Active',
     priceBoardSubFeng: '☀️ Standard Peak Active',
     priceBoardDesc: 'Calculated against Beijing Time: Workday peak hours at 100%, Weekends/Holidays 24h & Workday Night/Noon at 50% off',
     filterAll: 'All',
     filterFlash: 'V4 Flash',
+    filterVision: 'V4 Vision (Multimodal)',
     filterPro: 'V4 Pro',
+    filterReasoning: 'R1 / V3',
     cny: 'CNY ¥',
     usd: 'USD $',
     flagship: 'Flagship',
@@ -441,13 +447,15 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     ruleValleyDesc: 'Выходные (сб и вс) ВСЕ 24 часа, государственные праздники ВСЕ 24 часа, а также в будни 00:00 - 09:00, 12:00 - 14:00 и 18:00 - 24:00 (UTC+8). Скидка 50% на весь API!',
     ruleBestPractice: 'Совет по экономии: запускайте фоновые пакетные задачи в период [Долинный Лян] (все выходные, праздники, после 18:00 или 12:00-14:00), чтобы сократить расходы на API в 2 раза!',
     
-    priceBoardTitle: 'Таблица тарифов DeepSeek-V4 Flash / Pro',
+    priceBoardTitle: 'Официальные тарифы DeepSeek API',
     priceBoardSubGu: '⚡ Скидка 50% активна',
     priceBoardSubFeng: '☀️ Стандартный тариф',
     priceBoardDesc: 'Расчет по Пекину: Пик в будни (100%), выходные/праздники 24ч и ночь/обед со скидкой 50%',
     filterAll: 'Все',
     filterFlash: 'V4 Flash',
+    filterVision: 'V4 Vision (Мультимодал)',
     filterPro: 'V4 Pro',
+    filterReasoning: 'R1 / V3',
     cny: 'Юани ¥',
     usd: 'Доллары $',
     flagship: 'Флагман',

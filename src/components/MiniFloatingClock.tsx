@@ -12,7 +12,7 @@ import {
   X
 } from 'lucide-react';
 import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
-import { formatTimeInZone } from '../utils/timeUtils';
+import { formatTimeInZone, isDaytimeInZone } from '../utils/timeUtils';
 import { TRANSLATIONS } from '../i18n/translations';
 import { isTauriEnv, applyMiniClockWindow, restoreMainDashboardWindow } from '../utils/tauriWindow';
 import appIconImg from '../assets/images/deepseek_clock_icon_1787300567789.jpg';
@@ -96,6 +96,7 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
   const { timeStr } = formatTimeInZone(now, currentTimezone.timeZone, use24h, language);
   const msString = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   const isGu = phaseInfo.currentPhase === 'gu';
+  const isDaytime = isDaytimeInZone(now, currentTimezone.timeZone);
 
   // Handle window resize to keep floating clock inside viewport
   useEffect(() => {
@@ -236,24 +237,24 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className={`select-none shadow-2xl ${isTauri ? 'rounded-none h-screen w-screen border-none' : 'rounded-2xl border'} backdrop-blur-2xl transition-all duration-300 ${
+      className={`select-none shadow-2xl ${isTauri ? 'rounded-none h-screen w-screen' : 'rounded-3xl'} backdrop-blur-2xl transition-all duration-300 ${
         isLight
           ? isGu
-            ? 'bg-white/95 text-slate-800 border-emerald-400/60 shadow-[0_10px_35px_-5px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/30'
-            : 'bg-white/95 text-slate-800 border-amber-400/60 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
+            ? 'bg-white/95 text-slate-800 shadow-[0_15px_40px_-5px_rgba(16,185,129,0.3)]'
+            : 'bg-white/95 text-slate-800 shadow-[0_15px_40px_-5px_rgba(245,158,11,0.3)]'
           : isGu
-            ? `${currentTheme.cardBgClass} ${currentTheme.textColor} border-emerald-500/50 shadow-[0_10px_35px_-5px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/30`
-            : `${currentTheme.cardBgClass} ${currentTheme.textColor} border-amber-500/50 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/30`
-      } ${!isTauri && isDragging ? 'cursor-grabbing scale-[1.02] ring-2 ring-blue-500 shadow-blue-500/40' : !isTauri ? 'cursor-grab' : ''} animate-in fade-in duration-200`}
+            ? `${currentTheme.cardBgClass} ${currentTheme.textColor} shadow-[0_15px_40px_-5px_rgba(16,185,129,0.35)]`
+            : `${currentTheme.cardBgClass} ${currentTheme.textColor} shadow-[0_15px_40px_-5px_rgba(245,158,11,0.35)]`
+      } ${!isTauri && isDragging ? 'cursor-grabbing scale-[1.02] shadow-blue-500/40' : !isTauri ? 'cursor-grab' : ''} animate-in fade-in duration-200`}
     >
       {/* Mini Title Bar / Drag handle */}
       <div 
         id="mini-clock-drag-bar"
         data-tauri-drag-region
-        className={`flex items-center justify-between px-3 py-1.5 border-b text-[10px] ${isTauri ? 'rounded-none' : 'rounded-t-2xl'} gap-2 transition-colors cursor-move ${
+        className={`flex items-center justify-between px-3.5 py-2 text-[10px] ${isTauri ? 'rounded-none' : 'rounded-t-3xl'} gap-2 transition-colors cursor-move ${
           isLight 
-            ? 'border-slate-200 text-slate-600 bg-slate-100/90' 
-            : 'border-slate-800/80 text-slate-400 bg-slate-900/90'
+            ? 'text-slate-600 bg-slate-100/90' 
+            : 'text-slate-400 bg-slate-900/90'
         }`}
       >
         <div className={`flex items-center gap-1.5 font-semibold pointer-events-none truncate ${
@@ -272,7 +273,7 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
             <button
               onClick={handleResetPosition}
               title={language === 'zh' ? '靠右下停靠' : 'Dock Bottom-Right'}
-              className={`p-1 rounded transition-colors cursor-pointer ${
+              className={`p-1 rounded-lg transition-colors cursor-pointer ${
                 isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -282,7 +283,7 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
           <button
             onClick={() => setCompactMode(!compactMode)}
             title={compactMode ? (language === 'zh' ? '展开模式' : 'Expand') : (language === 'zh' ? '极简超小模式' : 'Compact')}
-            className={`p-1 rounded transition-colors cursor-pointer ${
+            className={`p-1 rounded-lg transition-colors cursor-pointer ${
               isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -291,7 +292,7 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
           <button
             onClick={onToggleSound}
             title={soundEnabled ? t.soundEnabledTitle : t.soundDisabledTitle}
-            className={`p-1 rounded transition-colors cursor-pointer ${
+            className={`p-1 rounded-lg transition-colors cursor-pointer ${
               isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -310,17 +311,21 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
       </div>
 
       {/* Content Body: Only Time & 梁文峰/梁文谷 Status */}
-      <div className={`p-3 sm:p-4 flex flex-col items-center justify-center ${compactMode ? 'min-w-[210px]' : 'min-w-[280px]'}`}>
+      <div className={`p-3.5 sm:p-4 flex flex-col items-center justify-center ${compactMode ? 'min-w-[210px]' : 'min-w-[280px]'}`}>
         {/* Status Pill */}
         <div className="flex items-center gap-2 mb-1.5 pointer-events-none max-w-full">
           <span
-            className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black border tracking-wide truncate ${
+            className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black tracking-wide truncate shadow-sm ${
               isGu
-                ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-300 border-emerald-500/50 animate-pulse'
-                : 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border-amber-500/50'
+                ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-300 animate-pulse'
+                : 'bg-amber-500/20 text-amber-600 dark:text-amber-300'
             }`}
           >
-            {isGu ? <Moon className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" /> : <Sun className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 flex-shrink-0" />}
+            {isDaytime ? (
+              <Sun className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 flex-shrink-0" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-indigo-400 dark:text-indigo-300 flex-shrink-0" />
+            )}
             <span className="truncate">{phaseInfo.characterName}</span>
             <span className="text-[10px] font-normal opacity-90 whitespace-nowrap">
               ({phaseInfo.isHoliday ? `${phaseInfo.holidayName} 5折` : phaseInfo.isWeekend ? (language === 'zh' ? '周末 5折' : 'Weekend 50%') : isGu ? (language === 'zh' ? '5折' : '50%') : (language === 'zh' ? '原价' : '100%')})
@@ -348,16 +353,16 @@ export const MiniFloatingClock: React.FC<MiniFloatingClockProps> = ({
         </div>
 
         {/* Next Switch Target & Countdown */}
-        <div className={`flex items-center justify-between w-full mt-1 pt-1.5 border-t text-[10px] pointer-events-none gap-2 ${
-          isLight ? 'border-slate-200 text-slate-500' : 'border-slate-800/80 text-slate-400'
+        <div className={`flex items-center justify-between w-full mt-1.5 pt-1.5 text-[10px] pointer-events-none gap-2 ${
+          isLight ? 'text-slate-500' : 'text-slate-400'
         }`}>
           <span className="min-w-0 flex-1 truncate pr-1">
             {t.targetNext}: {phaseInfo.nextCharacterName}
           </span>
-          <span className={`font-mono font-bold px-1.5 py-0.5 rounded border flex-shrink-0 whitespace-nowrap ${
+          <span className={`font-mono font-bold px-2 py-0.5 rounded-lg flex-shrink-0 whitespace-nowrap shadow-sm ${
             isLight 
-              ? 'text-amber-700 bg-amber-50 border-amber-200' 
-              : 'text-amber-300/90 bg-slate-900 border-slate-800'
+              ? 'text-amber-700 bg-amber-50' 
+              : 'text-amber-300/90 bg-slate-900'
           }`}>
             {phaseInfo.countdownFormatted}
           </span>

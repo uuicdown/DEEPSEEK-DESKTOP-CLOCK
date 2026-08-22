@@ -11,13 +11,23 @@ import {
   Calendar, 
   Languages, 
   Check,
-  Tv
+  Tv,
+  Minus,
+  Square,
+  X
 } from 'lucide-react';
 import { AVAILABLE_TIMEZONES, THEMES } from '../data/deepseekPrices';
 import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
 import { formatTimeInZone, getLunarInfo } from '../utils/timeUtils';
 import { TRANSLATIONS } from '../i18n/translations';
 import appIconImg from '../assets/images/deepseek_clock_icon_1787300567789.jpg';
+import { 
+  isTauriEnv, 
+  minimizeDesktopWindow, 
+  toggleMaximizeDesktopWindow, 
+  closeDesktopWindow,
+  startDesktopDragging 
+} from '../utils/tauriWindow';
 
 interface ClockHeaderProps {
   now: Date;
@@ -95,18 +105,30 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
   const themeDisplayName = currentTheme.names?.[language] || currentTheme.name;
 
   return (
-    <header className="relative w-full mb-6">
-      {/* Top Utility Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/60">
+    <header className="relative w-full mb-6 select-none">
+      {/* Top Utility Bar - Frameless & Sleek with Window Drag Support */}
+      <div 
+        data-tauri-drag-region
+        onMouseDown={(e) => {
+          // If in Tauri and not clicking an interactive button/input, trigger drag
+          if (isTauriEnv() && !(e.target as HTMLElement).closest('button, input, select, a, [role="button"]')) {
+            startDesktopDragging();
+          }
+        }}
+        className="flex flex-wrap items-center justify-between gap-3 pb-3 cursor-default"
+      >
         {/* Left: Brand with App Icon + Timezone + Language Switcher */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900/90 border border-blue-500/30 text-blue-400 text-xs font-semibold whitespace-nowrap shadow-md">
+          <div 
+            data-tauri-drag-region
+            className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900/80 text-blue-400 text-xs font-semibold whitespace-nowrap shadow-lg shadow-black/20"
+          >
             <img 
               src={appIconImg} 
               alt="DeepSeek Clock Logo" 
-              className="w-5 h-5 rounded-lg object-cover ring-1 ring-cyan-400/40 shadow"
+              className="w-5 h-5 rounded-lg object-cover shadow pointer-events-none"
             />
-            <span className="font-bold text-slate-100">{t.appName}</span>
+            <span className="font-bold text-slate-100 pointer-events-none">{t.appName}</span>
           </div>
 
           {/* Timezone Switcher Dropdown */}
@@ -118,19 +140,19 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                 setShowThemeDropdown(false);
                 setShowLangDropdown(false);
               }}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-200 transition-all font-medium cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/90 text-xs text-slate-200 transition-all font-medium cursor-pointer shadow-md"
             >
               <Globe className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
               <span className="max-w-[100px] sm:max-w-none truncate">{tzDisplayCity}</span>
-              <span className="text-[10px] font-mono text-slate-400 bg-slate-900/60 px-1.5 py-0.5 rounded flex-shrink-0">
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-950/70 px-1.5 py-0.5 rounded flex-shrink-0">
                 {offsetPart || currentTimezone.offsetLabel}
               </span>
               <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" />
             </button>
 
             {showTzDropdown && (
-              <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-2 py-1.5 text-[11px] font-medium text-slate-400 border-b border-slate-800">
+              <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-slate-900/95 backdrop-blur-2xl shadow-2xl p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-2 py-1.5 text-[11px] font-medium text-slate-400">
                   {t.selectTimezoneHint}
                 </div>
                 <div className="max-h-60 overflow-y-auto py-1 space-y-1">
@@ -146,15 +168,15 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-colors cursor-pointer ${
                           currentTimezone.id === tz.id
-                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                            : 'hover:bg-slate-800/60 text-slate-300'
+                            ? 'bg-blue-600/30 text-blue-300 font-bold'
+                            : 'hover:bg-slate-800/70 text-slate-300'
                         }`}
                       >
                         <div className="flex flex-col min-w-0 pr-2">
                           <span className="font-semibold truncate">{itemCity}</span>
                           <span className="text-[10px] text-slate-400 truncate">{itemName}</span>
                         </div>
-                        <span className="text-[10px] font-mono bg-slate-800/80 px-1.5 py-0.5 rounded text-slate-400 flex-shrink-0">
+                        <span className="text-[10px] font-mono bg-slate-950/70 px-1.5 py-0.5 rounded text-slate-400 flex-shrink-0">
                           {tz.offsetLabel}
                         </span>
                       </button>
@@ -175,7 +197,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                 setShowThemeDropdown(false);
               }}
               title={t.language}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-blue-500/30 hover:border-blue-400 text-xs font-semibold text-white transition-all cursor-pointer shadow-sm whitespace-nowrap"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/90 text-xs font-semibold text-white transition-all cursor-pointer shadow-md whitespace-nowrap"
             >
               <Languages className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
               <span>{currentLangMeta.flag}</span>
@@ -185,8 +207,8 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             </button>
 
             {showLangDropdown && (
-              <div className="absolute left-0 sm:left-auto sm:right-auto mt-2 w-48 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl p-1.5 z-50 text-xs animate-in fade-in duration-150">
-                <div className="px-2 py-1 text-[11px] font-medium text-slate-400 border-b border-slate-800 mb-1">
+              <div className="absolute left-0 sm:left-auto sm:right-auto mt-2 w-48 rounded-2xl bg-slate-900/95 backdrop-blur-2xl shadow-2xl p-1.5 z-50 text-xs animate-in fade-in duration-150">
+                <div className="px-2 py-1 text-[11px] font-medium text-slate-400 mb-1">
                   {t.language}
                 </div>
                 {LANGUAGE_OPTIONS.map((opt) => (
@@ -198,7 +220,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                     }}
                     className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-colors cursor-pointer ${
                       language === opt.id
-                        ? 'bg-blue-600/20 text-blue-400 font-bold border border-blue-500/30'
+                        ? 'bg-blue-600/30 text-blue-300 font-bold'
                         : 'hover:bg-slate-800/70 text-slate-200'
                     }`}
                   >
@@ -221,7 +243,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             id="toggle-24h-button"
             onClick={onToggle24h}
             title={t.toggle24hTitle}
-            className="px-2.5 py-1.5 rounded-xl bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-xs font-mono font-medium text-slate-300 transition-colors cursor-pointer"
+            className="px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-xs font-mono font-bold text-slate-300 transition-colors cursor-pointer shadow-sm"
           >
             {use24h ? '24H' : '12H'}
           </button>
@@ -231,10 +253,10 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             id="toggle-ms-button"
             onClick={onToggleMs}
             title={t.toggleMsTitle}
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-mono font-medium transition-colors cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer shadow-sm ${
               showMs
-                ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-                : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
             }`}
           >
             .MS
@@ -245,10 +267,10 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             id="toggle-sound-button"
             onClick={onToggleSound}
             title={soundEnabled ? t.soundEnabledTitle : t.soundDisabledTitle}
-            className={`p-2 rounded-xl border text-xs transition-colors cursor-pointer ${
+            className={`p-2 rounded-xl text-xs transition-colors cursor-pointer shadow-sm ${
               soundEnabled
-                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                ? 'bg-emerald-600/40 text-emerald-300'
+                : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
             }`}
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -264,15 +286,15 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                 setShowLangDropdown(false);
               }}
               title={t.selectTheme}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/70 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 transition-colors cursor-pointer shadow-sm"
             >
               <Palette className="w-3.5 h-3.5 text-indigo-400" />
               <span className="hidden md:inline max-w-[80px] truncate">{themeDisplayName}</span>
             </button>
 
             {showThemeDropdown && (
-              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl p-2 z-50 text-xs animate-in fade-in duration-150">
-                <div className="px-2 py-1 text-[11px] font-medium text-slate-400 border-b border-slate-800 mb-1">
+              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-slate-900/95 backdrop-blur-2xl shadow-2xl p-2 z-50 text-xs animate-in fade-in duration-150">
+                <div className="px-2 py-1 text-[11px] font-medium text-slate-400 mb-1">
                   {t.selectTheme}
                 </div>
                 {THEMES.map((theme) => {
@@ -286,8 +308,8 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                       }}
                       className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left transition-colors cursor-pointer ${
                         currentTheme.id === theme.id
-                          ? 'bg-blue-600/20 text-blue-400 font-semibold border border-blue-500/30'
-                          : 'hover:bg-slate-800/60 text-slate-300'
+                          ? 'bg-blue-600/30 text-blue-300 font-bold'
+                          : 'hover:bg-slate-800/70 text-slate-300'
                       }`}
                     >
                       <span>{tName}</span>
@@ -314,27 +336,57 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
             id="minimize-to-mini-button"
             onClick={onMinimizeToMini}
             title={t.minimizeTitle}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-300 hover:text-white text-xs font-semibold shadow transition-all cursor-pointer whitespace-nowrap hover:scale-105"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-emerald-300 hover:text-white text-xs font-semibold shadow-md transition-all cursor-pointer whitespace-nowrap hover:scale-105"
           >
             <Minimize2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
             <span className="hidden sm:inline">{t.minimizeBtn}</span>
           </button>
+
+          {/* Frameless Desktop Window Controls (Tauri Desktop App) */}
+          {isTauriEnv() && (
+            <div className="flex items-center gap-1 pl-1 ml-1 border-l border-slate-700/60">
+              <button
+                id="desktop-minimize-btn"
+                onClick={minimizeDesktopWindow}
+                title={language === 'zh' ? '最小化到任务栏' : language === 'en' ? 'Minimize' : 'Свернуть'}
+                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <button
+                id="desktop-maximize-btn"
+                onClick={toggleMaximizeDesktopWindow}
+                title={language === 'zh' ? '最大化 / 还原窗口' : language === 'en' ? 'Maximize / Restore' : 'Развернуть'}
+                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <Square className="w-3 h-3" />
+              </button>
+              <button
+                id="desktop-close-btn"
+                onClick={closeDesktopWindow}
+                title={language === 'zh' ? '关闭程序' : language === 'en' ? 'Close' : 'Закрыть'}
+                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-600/90 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Main Clock Card */}
-      <div className={`mt-4 rounded-3xl p-6 sm:p-8 border transition-all duration-300 ${currentTheme.cardBgClass} ${currentTheme.borderClass} ${currentTheme.glowClass}`}>
+      {/* Main Clock Card - Pure Frameless Elevation */}
+      <div className={`mt-2 rounded-3xl p-6 sm:p-8 transition-all duration-300 ${currentTheme.cardBgClass} ${currentTheme.borderClass} ${currentTheme.glowClass}`}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Left / Center: Giant Digital Clock */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
             {/* Date & Calendar Row */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 mb-3 text-xs sm:text-sm font-medium">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800/70 border border-slate-700/60 text-slate-300">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/60 text-slate-200 shadow-sm">
                 <Calendar className="w-3.5 h-3.5 text-blue-400" />
                 <span className="font-semibold">{dateStr}</span>
               </div>
               {language === 'zh' && (
-                <div className="px-2.5 py-1 rounded-lg bg-slate-800/50 border border-slate-700/40 text-slate-400">
+                <div className="px-3 py-1.5 rounded-xl bg-slate-800/40 text-slate-300 shadow-sm">
                   <span>{lunar.lunarStr}</span>
                   {lunar.solarTerm && <span className="ml-1 text-blue-400 font-semibold">· {lunar.solarTerm}</span>}
                 </div>
@@ -367,13 +419,13 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
 
           {/* Right: DeepSeek Server Time / Beijing Reference Mini Widget */}
           <div className="w-full md:w-auto flex flex-col items-center md:items-end justify-center">
-            <div className="w-full sm:w-auto p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col gap-2.5">
+            <div className="w-full sm:w-auto p-4 rounded-2xl bg-slate-950/70 shadow-xl flex flex-col gap-2.5">
               <div className="flex items-center justify-between gap-4 text-xs">
                 <span className="text-slate-400 flex items-center gap-1.5 font-medium">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   {language === 'zh' ? '北京时间 (DeepSeek 基准)' : language === 'en' ? 'Beijing Time (DeepSeek Ref)' : 'Пекинское время (База DeepSeek)'}
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-blue-300 border border-slate-700">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-slate-800 text-blue-300">
                   UTC+8
                 </span>
               </div>
@@ -382,10 +434,10 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                 <span className="text-2xl font-bold text-slate-100">
                   {phaseInfo.beijingTimeString}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold shadow-sm ${
                   isGu 
-                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' 
-                    : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                    ? 'bg-emerald-500/20 text-emerald-300' 
+                    : 'bg-amber-500/20 text-amber-300'
                 }`}>
                   {isGu 
                     ? (language === 'zh' ? '🌙 谷时段 (5折)' : language === 'en' ? '🌙 Valley (50% Off)' : '🌙 Скидка (50%)') 
@@ -393,7 +445,7 @@ export const ClockHeader: React.FC<ClockHeaderProps> = ({
                 </span>
               </div>
 
-              <div className="text-[11px] text-slate-400 border-t border-slate-800/80 pt-2 flex items-center justify-between gap-2">
+              <div className="text-[11px] text-slate-400 pt-1.5 flex items-center justify-between gap-2">
                 <span>{language === 'zh' ? '时段判定人物：' : language === 'en' ? 'Phase Character:' : 'Текущий персонаж:'}</span>
                 <span className="font-bold text-slate-200">
                   {phaseInfo.characterName}

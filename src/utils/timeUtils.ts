@@ -449,3 +449,22 @@ function getSolarTerm(date: Date): string {
   if (month === 11) return day < 22 ? '立冬' : '小雪';
   return day < 22 ? '大雪' : '冬至';
 }
+
+/**
+ * Check if the given date is daytime (06:00 - 18:00) in the specified timeZone
+ */
+export function isDaytimeInZone(date: Date = new Date(), timeZone: string = 'Asia/Shanghai'): boolean {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).formatToParts(date);
+    const hourPart = parts.find((p) => p.type === 'hour')?.value;
+    const hour = hourPart ? parseInt(hourPart, 10) : date.getHours();
+    return hour >= 6 && hour < 18;
+  } catch {
+    const hour = date.getHours();
+    return hour >= 6 && hour < 18;
+  }
+}

@@ -12,7 +12,12 @@ interface TauriWindow {
   setPosition?: (pos: { x: number; y: number }) => Promise<void>;
   center: () => Promise<void>;
   minimize: () => Promise<void>;
+  maximize?: () => Promise<void>;
+  unmaximize?: () => Promise<void>;
+  toggleMaximize?: () => Promise<void>;
+  isMaximized?: () => Promise<boolean>;
   close: () => Promise<void>;
+  startDragging?: () => Promise<void>;
   listen: (event: string, handler: (e: unknown) => void) => Promise<() => void>;
 }
 
@@ -155,6 +160,56 @@ export async function exitApplication(): Promise<void> {
 
   // If in browser tab
   window.close();
+}
+
+/** Minimize desktop window */
+export async function minimizeDesktopWindow(): Promise<void> {
+  const appWin = getTauriWindow();
+  if (appWin) {
+    try {
+      await appWin.minimize();
+    } catch {
+      // fallback
+    }
+  }
+}
+
+/** Toggle Maximize desktop window */
+export async function toggleMaximizeDesktopWindow(): Promise<void> {
+  const appWin = getTauriWindow();
+  if (appWin) {
+    try {
+      if (appWin.toggleMaximize) {
+        await appWin.toggleMaximize();
+      } else if (appWin.isMaximized && appWin.maximize && appWin.unmaximize) {
+        const max = await appWin.isMaximized();
+        if (max) {
+          await appWin.unmaximize();
+        } else {
+          await appWin.maximize();
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+}
+
+/** Close / Exit Desktop Window */
+export async function closeDesktopWindow(): Promise<void> {
+  await exitApplication();
+}
+
+/** Start window dragging on mousedown */
+export async function startDesktopDragging(): Promise<void> {
+  const appWin = getTauriWindow();
+  if (appWin && appWin.startDragging) {
+    try {
+      await appWin.startDragging();
+    } catch {
+      // fallback
+    }
+  }
 }
 
 /** Setup tray events listener */

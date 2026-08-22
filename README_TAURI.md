@@ -54,7 +54,7 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
 
 项目中已为您配置好符合最新 **Tauri v2** 规范的 `src-tauri/` 目录结构与标识符（`com.Soren.deepseekclock`）：
 
-### 1. `src-tauri/tauri.conf.json`
+### 1. `src-tauri/tauri.conf.json`（无边框沉浸式窗口配置）
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
@@ -77,10 +77,11 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
         "minHeight": 150,
         "resizable": true,
         "fullscreen": false,
-        "decorations": true,
+        "decorations": false,
         "center": true,
         "alwaysOnTop": false,
-        "transparent": false
+        "transparent": true,
+        "shadow": true
       }
     ],
     "security": {
@@ -109,7 +110,7 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
 }
 ```
 
-### 2. `src-tauri/capabilities/default.json`（Tauri v2 窗口控制权限配置）
+### 2. `src-tauri/capabilities/default.json`（Tauri v2 窗口拖拽与无边框控制权限配置）
 ```json
 {
   "$schema": "../gen/schemas/desktop-schema.json",
@@ -128,6 +129,13 @@ npx @tauri-apps/cli icon src/assets/images/deepseek_clock_icon_1787300567789.jpg
     "core:window:allow-hide",
     "core:window:allow-close",
     "core:window:allow-center",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-set-decorations",
+    "core:window:allow-set-shadow",
     "core:event:default"
   ]
 }

@@ -5,7 +5,14 @@ import {
   Zap, 
   Database, 
   Sun, 
-  Moon 
+  Moon,
+  Sparkles,
+  Layers,
+  ArrowRight,
+  CheckCircle2,
+  Cpu,
+  Brain,
+  Sliders
 } from 'lucide-react';
 import { DEEPSEEK_MODELS } from '../data/deepseekPrices';
 import { ClockTheme, Language, PhaseInfo } from '../types';
@@ -25,7 +32,7 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
   const [currency, setCurrency] = useState<'cny' | 'usd'>('cny');
   const [unit, setUnit] = useState<'1M' | '1K'>('1M');
   const [showCalculator, setShowCalculator] = useState(false);
-  const [modelFilter, setModelFilter] = useState<'all' | 'flash' | 'pro'>('all');
+  const [modelFilter, setModelFilter] = useState<'all' | 'flash' | 'vision' | 'pro' | 'reasoning'>('all');
 
   const t = TRANSLATIONS[language];
 
@@ -38,7 +45,7 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
   const isGu = phaseInfo.currentPhase === 'gu';
   const currencySymbol = currency === 'cny' ? '¥' : '$';
   const unitDivider = unit === '1M' ? 1 : 1000;
-  const unitLabel = unit === '1M' ? '/ 1M Tokens' : '/ 1K Tokens';
+  const unitLabel = unit === '1M' ? '/ 1M' : '/ 1K';
 
   const formatPrice = (val: number) => {
     const adjusted = val / unitDivider;
@@ -49,8 +56,10 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
   };
 
   const filteredModels = DEEPSEEK_MODELS.filter((m) => {
-    if (modelFilter === 'flash') return m.modelId.includes('flash');
+    if (modelFilter === 'flash') return m.modelId === 'deepseek-v4-flash';
+    if (modelFilter === 'vision') return m.modelId.includes('vision');
     if (modelFilter === 'pro') return m.modelId.includes('pro');
+    if (modelFilter === 'reasoning') return m.modelId.includes('r1') || m.modelId.includes('v3');
     return true;
   });
 
@@ -75,65 +84,86 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
 
   return (
     <section className="relative w-full">
-      {/* Header bar of Price Section */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400">
+      {/* Header Bar & Global Control Toolbar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+        {/* Title & Live Status Indicator */}
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 shadow-sm flex-shrink-0">
             <Coins className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-white flex flex-wrap items-center gap-2">
-              <span>{t.priceBoardTitle}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {t.priceBoardTitle}
+              </h3>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border flex items-center gap-1.5 shadow-sm ${
                 isGu
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
                   : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
               }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isGu ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                 {isGu ? t.priceBoardSubGu : t.priceBoardSubFeng}
               </span>
-            </h3>
-            <p className="text-xs text-slate-400">
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
               {t.priceBoardDesc}
             </p>
           </div>
         </div>
 
-        {/* Action Toggles */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Model Filter Tabs */}
-          <div className="flex rounded-xl bg-slate-900 border border-slate-800 p-0.5 text-xs">
+        {/* Action Controls Bar */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Model Filter Pills */}
+          <div className="flex flex-wrap rounded-2xl bg-slate-950/80 p-1 text-xs shadow-inner">
             <button
               onClick={() => setModelFilter('all')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                modelFilter === 'all' ? 'bg-slate-700 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
+                modelFilter === 'all' ? 'bg-slate-700 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               {t.filterAll}
             </button>
             <button
               onClick={() => setModelFilter('flash')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                modelFilter === 'flash' ? 'bg-blue-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
+                modelFilter === 'flash' ? 'bg-blue-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               {t.filterFlash}
             </button>
             <button
+              onClick={() => setModelFilter('vision')}
+              className={`px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                modelFilter === 'vision' ? 'bg-purple-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-pink-300" />
+              {t.filterVision}
+            </button>
+            <button
               onClick={() => setModelFilter('pro')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                modelFilter === 'pro' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
+                modelFilter === 'pro' ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               {t.filterPro}
             </button>
+            <button
+              onClick={() => setModelFilter('reasoning')}
+              className={`px-3 py-1.5 rounded-xl font-medium transition-all cursor-pointer ${
+                modelFilter === 'reasoning' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t.filterReasoning}
+            </button>
           </div>
 
-          {/* Currency Switcher */}
-          <div className="flex rounded-xl bg-slate-900 border border-slate-800 p-0.5 text-xs">
+          {/* Currency Toggle */}
+          <div className="flex rounded-2xl bg-slate-950/80 p-1 text-xs shadow-inner">
             <button
               id="currency-cny-button"
               onClick={() => setCurrency('cny')}
-              className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                 currency === 'cny'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -144,7 +174,7 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
             <button
               id="currency-usd-button"
               onClick={() => setCurrency('usd')}
-              className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                 currency === 'usd'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
@@ -154,14 +184,14 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
             </button>
           </div>
 
-          {/* Unit Switcher */}
-          <div className="flex rounded-xl bg-slate-900 border border-slate-800 p-0.5 text-xs">
+          {/* Unit Toggle */}
+          <div className="flex rounded-2xl bg-slate-950/80 p-1 text-xs shadow-inner">
             <button
               id="unit-1m-button"
               onClick={() => setUnit('1M')}
-              className={`px-2.5 py-1 rounded-lg font-mono font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-xl font-mono font-bold transition-all cursor-pointer ${
                 unit === '1M'
-                  ? 'bg-slate-700 text-white'
+                  ? 'bg-slate-700 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -170,9 +200,9 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
             <button
               id="unit-1k-button"
               onClick={() => setUnit('1K')}
-              className={`px-2.5 py-1 rounded-lg font-mono font-medium transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-xl font-mono font-bold transition-all cursor-pointer ${
                 unit === '1K'
-                  ? 'bg-slate-700 text-white'
+                  ? 'bg-slate-700 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -180,219 +210,307 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
             </button>
           </div>
 
-          {/* Calculator Toggle */}
+          {/* Calculator Toggle Button */}
           <button
             id="toggle-calculator-button"
             onClick={() => setShowCalculator(!showCalculator)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
               showCalculator
-                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30'
-                : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 hover:text-white shadow-md'
             }`}
           >
-            <Calculator className="w-3.5 h-3.5" />
+            <Calculator className="w-3.5 h-3.5 text-indigo-400" />
             <span>{showCalculator ? t.hideCalculator : t.calculator}</span>
           </button>
         </div>
       </div>
 
-      {/* Model Pricing Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+      {/* Model Pricing Grid: Optimized Responsive Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch">
         {filteredModels.map((model) => {
           const pricing = currency === 'cny' ? model.cny : model.usd;
           const currentModelPricing = isGu ? pricing.gu : pricing.feng;
           const isV4 = model.modelId.startsWith('deepseek-v4');
+          const isVision = model.modelId.includes('vision');
+          const isReasoning = model.modelId.includes('r1');
+          const isPro = model.modelId.includes('pro');
 
           return (
             <div
               key={model.modelId}
-              className={`relative rounded-3xl p-5 sm:p-6 border transition-all duration-300 ${
+              className={`relative rounded-3xl p-5 sm:p-6 transition-all duration-300 ${
                 currentTheme.cardBgClass
-              } ${currentTheme.borderClass} ${isV4 ? 'ring-1 ring-blue-500/30' : ''} flex flex-col justify-between`}
+              } ${
+                isVision 
+                  ? 'shadow-[0_15px_40px_-10px_rgba(168,85,247,0.3)]' 
+                  : isV4 
+                    ? 'shadow-[0_15px_40px_-10px_rgba(59,130,246,0.25)]' 
+                    : 'shadow-xl'
+              } flex flex-col justify-between`}
             >
               <div>
-                {/* Model Header */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xl font-black text-white tracking-tight">
+                {/* 1. Header Section: Title, Badges, and Context Limit */}
+                <div className="mb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      {/* Model Name */}
+                      <h4 className="text-xl font-black text-white tracking-tight leading-snug">
                         {model.modelName}
-                      </span>
-                      {isV4 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm">
-                          {t.flagship}
-                        </span>
-                      )}
-                      <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-400">
-                        {model.modelId}
+                      </h4>
+
+                      {/* Tag / Badge Placed Below Model Name */}
+                      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                        {isVision && (
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600/90 to-pink-600/90 text-white shadow-sm flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3 text-yellow-300" />
+                            {language === 'zh' ? '最新多模态旗舰' : language === 'en' ? 'Multimodal Flagship' : 'Мультимодальный флагман'}
+                          </span>
+                        )}
+                        {isPro && (
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-600/90 text-white shadow-sm flex items-center gap-1.5">
+                            <Cpu className="w-3 h-3 text-indigo-200" />
+                            {language === 'zh' ? '全能专业旗舰' : language === 'en' ? 'Pro Flagship' : 'Про Флагман'}
+                          </span>
+                        )}
+                        {isV4 && !isVision && !isPro && (
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-blue-600/90 text-white shadow-sm flex items-center gap-1.5">
+                            <Zap className="w-3 h-3 text-yellow-300" />
+                            {language === 'zh' ? '新一代极速旗舰' : language === 'en' ? 'Next-Gen Fast Flagship' : 'Скоростной флагман'}
+                          </span>
+                        )}
+                        {isReasoning && (
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-600/90 text-white shadow-sm flex items-center gap-1.5">
+                            <Brain className="w-3 h-3 text-emerald-200" />
+                            {language === 'zh' ? '深度逻辑推理' : language === 'en' ? 'Deep Reasoning' : 'Глубокие рассуждения'}
+                          </span>
+                        )}
+                        {model.modelId === 'deepseek-v3' && (
+                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-slate-700/90 text-slate-200 shadow-sm flex items-center gap-1.5">
+                            <Layers className="w-3 h-3 text-blue-300" />
+                            {language === 'zh' ? '开源通用对话' : language === 'en' ? 'Open-Source Chat' : 'Универсальный диалог'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Context Window Tag */}
+                    <div className="flex-shrink-0 pt-0.5">
+                      <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl bg-blue-950/80 text-blue-300 shadow-sm whitespace-nowrap">
+                        {model.contextWindow}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {language === 'zh'
-                        ? model.description
-                        : language === 'en'
-                          ? (model.modelId.includes('flash')
-                              ? 'Next-gen high throughput and ultra-low latency flagship for high-frequency workloads'
-                              : 'Next-gen all-round professional flagship with advanced coding, multimodal and deep reasoning')
-                          : (model.modelId.includes('flash')
-                              ? 'Флагман нового поколения с высокой пропускной способностью и низкой задержкой'
-                              : 'Универсальный профессиональный флагман для сложного кода, мультимодальности и логики')}
-                    </p>
                   </div>
 
-                  {/* Context Badge */}
-                  <div className="text-right flex-shrink-0">
-                    <span className="text-[11px] font-mono px-2 py-1 rounded-lg bg-blue-950/60 border border-blue-800/50 text-blue-300 font-semibold">
-                      {t.context}: {model.contextWindow}
+                  {/* Description */}
+                  <p className="text-xs text-slate-400 mt-2.5 leading-relaxed min-h-[36px]">
+                    {language === 'zh'
+                      ? model.description
+                      : language === 'en'
+                        ? (model.modelId.includes('vision')
+                            ? 'Experimental multimodal flagship matching V4-Flash with strong vision agent benchmarks.'
+                            : model.modelId.includes('flash')
+                            ? 'Next-gen high throughput and ultra-low latency flagship for high-frequency workloads.'
+                            : model.modelId.includes('pro')
+                            ? 'Next-gen all-round professional flagship with advanced coding and deep reasoning.'
+                            : model.modelId.includes('r1')
+                            ? 'Deep reasoning model specialized in math, code logic, and step-by-step thinking.'
+                            : 'General conversational LLM with exceptional multilingual ability and cost efficiency.')
+                        : (model.modelId.includes('vision')
+                            ? 'Экспериментальный мультимодальный флагман с визуальным анализом.'
+                            : model.modelId.includes('flash')
+                            ? 'Флагман нового поколения с высокой пропускной способностью и низкой задержкой.'
+                            : model.modelId.includes('pro')
+                            ? 'Универсальный профессиональный флагман для сложного кода и логики.'
+                            : 'Флагман для глубоких рассуждений и диалогов.')}
+                  </p>
+                </div>
+
+                {/* 2. Real-Time Active Rate Box (当前执行计费标准) */}
+                <div className={`rounded-2xl p-3.5 transition-all ${
+                  isGu
+                    ? 'bg-gradient-to-b from-emerald-950/50 to-slate-950/80 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.3)]'
+                    : 'bg-gradient-to-b from-amber-950/40 to-slate-950/80 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.3)]'
+                }`}>
+                  {/* Status Row */}
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Zap className={`w-3.5 h-3.5 ${isGu ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+                      <span className="text-xs font-bold text-white">
+                        {isGu ? (
+                          <span className="text-emerald-300">
+                            {language === 'zh' ? '⚡ 当前执行：梁文谷 5折' : language === 'en' ? '⚡ Active: Valley 50% Off' : '⚡ Активно: Скидка 50%'}
+                          </span>
+                        ) : (
+                          <span className="text-amber-300">
+                            {language === 'zh' ? '☀️ 当前执行：梁文峰 原价' : language === 'en' ? '☀️ Active: Peak Standard' : '☀️ Активно: Пик 100%'}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide uppercase shadow-sm ${
+                      isGu 
+                        ? 'bg-emerald-500/20 text-emerald-300' 
+                        : 'bg-amber-500/20 text-amber-300'
+                    }`}>
+                      {t.liveActive}
                     </span>
+                  </div>
+
+                  {/* 3-Column Token Price Visual Cards */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    {/* Input Miss */}
+                    <div className="p-2 rounded-xl bg-slate-950/70 shadow-inner flex flex-col justify-between">
+                      <div className="text-[10px] text-slate-400 mb-0.5 truncate font-medium">
+                        {t.inputMiss}
+                      </div>
+                      <div className="font-mono text-sm sm:text-base font-black text-white">
+                        {currencySymbol}{formatPrice(currentModelPricing.inputMiss)}
+                      </div>
+                      <div className="text-[9px] text-slate-500 font-mono mt-0.5">
+                        {unitLabel}
+                      </div>
+                    </div>
+
+                    {/* Input Hit (Cache) */}
+                    <div className="p-2 rounded-xl bg-emerald-950/40 shadow-inner flex flex-col justify-between">
+                      <div className="text-[10px] text-emerald-400 font-bold mb-0.5 flex items-center justify-center gap-0.5 truncate">
+                        <Database className="w-2.5 h-2.5 flex-shrink-0" />
+                        <span className="truncate">{t.inputHit}</span>
+                      </div>
+                      <div className="font-mono text-sm sm:text-base font-black text-emerald-300">
+                        {currencySymbol}{formatPrice(currentModelPricing.inputHit)}
+                      </div>
+                      <div className="text-[9px] text-emerald-500 font-mono font-semibold mt-0.5">
+                        {language === 'zh' ? '省90%+' : 'Save 90%'}
+                      </div>
+                    </div>
+
+                    {/* Output */}
+                    <div className="p-2 rounded-xl bg-slate-950/70 shadow-inner flex flex-col justify-between">
+                      <div className="text-[10px] text-slate-400 mb-0.5 truncate font-medium">
+                        {t.output}
+                      </div>
+                      <div className="font-mono text-sm sm:text-base font-black text-white">
+                        {currencySymbol}{formatPrice(currentModelPricing.output)}
+                      </div>
+                      <div className="text-[9px] text-slate-500 font-mono mt-0.5">
+                        {unitLabel}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Pricing Comparison Container */}
-                <div className="space-y-2.5 mt-4">
-                  {/* Current Active Price Highlight Card */}
-                  <div className={`p-3.5 rounded-2xl border transition-all ${
-                    isGu
-                      ? 'bg-emerald-950/40 border-emerald-500/50 shadow-[0_0_20px_-8px_rgba(16,185,129,0.3)]'
-                      : 'bg-amber-950/30 border-amber-500/50 shadow-[0_0_20px_-8px_rgba(245,158,11,0.3)]'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold flex items-center gap-1.5 text-white">
-                        <Zap className={`w-3.5 h-3.5 ${isGu ? 'text-emerald-400' : 'text-amber-400'}`} />
-                        {t.activePriceHighlight} ({isGu ? `🌙 ${t.valleyName} · 50%` : `☀️ ${t.peakName} · 100%`})
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        isGu 
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
-                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      }`}>
-                        {t.liveActive}
-                      </span>
+                {/* 3. Peak vs Valley Rate Comparison Matrix */}
+                <div className="mt-3 rounded-2xl bg-slate-950/60 p-3 text-xs shadow-inner">
+                  <div className="text-slate-400 font-semibold mb-2 flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-blue-400" />
+                      {t.rateTable}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {language === 'zh' ? '未命中 / 缓存命中 / 输出' : 'Miss / Hit / Output'}
+                    </span>
+                  </div>
+
+                  {/* Peak standard row */}
+                  <div className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-medium min-w-0">
+                      <Sun className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+                      <span className="truncate">{t.peakRowTitle}</span>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 min-w-0">
-                        <div className="text-[10px] text-slate-400 mb-0.5 truncate">{t.inputMiss}</div>
-                        <div className="font-mono text-sm sm:text-base font-extrabold text-white truncate">
-                          {currencySymbol}{formatPrice(currentModelPricing.inputMiss)}
-                        </div>
-                        <div className="text-[9px] text-slate-500 font-mono truncate">{unitLabel}</div>
-                      </div>
-
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 min-w-0">
-                        <div className="text-[10px] text-emerald-400 font-semibold mb-0.5 flex items-center justify-center gap-0.5 truncate">
-                          <Database className="w-2.5 h-2.5 flex-shrink-0" />
-                          <span className="truncate">{t.inputHit}</span>
-                        </div>
-                        <div className="font-mono text-sm sm:text-base font-extrabold text-emerald-300 truncate">
-                          {currencySymbol}{formatPrice(currentModelPricing.inputHit)}
-                        </div>
-                        <div className="text-[9px] text-emerald-500 font-mono truncate">{unitLabel}</div>
-                      </div>
-
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 min-w-0">
-                        <div className="text-[10px] text-slate-400 mb-0.5 truncate">{t.output}</div>
-                        <div className="font-mono text-sm sm:text-base font-extrabold text-white truncate">
-                          {currencySymbol}{formatPrice(currentModelPricing.output)}
-                        </div>
-                        <div className="text-[9px] text-slate-500 font-mono truncate">{unitLabel}</div>
-                      </div>
+                    <div className="font-mono font-bold text-slate-200 text-right text-[11px] sm:text-xs">
+                      <span className="text-slate-300">{currencySymbol}{formatPrice(pricing.feng.inputMiss)}</span>
+                      <span className="text-slate-600 mx-1">/</span>
+                      <span className="text-emerald-400">{currencySymbol}{formatPrice(pricing.feng.inputHit)}</span>
+                      <span className="text-slate-600 mx-1">/</span>
+                      <span className="text-slate-300">{currencySymbol}{formatPrice(pricing.feng.output)}</span>
                     </div>
                   </div>
 
-                  {/* Contrast Table (Peak vs Valley Details) */}
-                  <div className="p-3 rounded-2xl bg-slate-950/50 border border-slate-800/70 text-xs">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 pb-1.5 border-b border-slate-800 gap-2">
-                      <span className="truncate">{t.rateTable}</span>
-                      <span className="font-mono text-[10px] text-slate-500 flex-shrink-0">{t.inputMissHitOutput}</span>
+                  {/* Valley discounted row */}
+                  <div className="flex items-center justify-between py-1.5">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-medium min-w-0">
+                      <Moon className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
+                      <span className="truncate">{t.valleyRowTitle}</span>
                     </div>
-
-                    {/* Feng Row */}
-                    <div className={`flex flex-wrap items-center justify-between py-2 border-b border-slate-800/50 gap-1.5 ${
-                      !isGu ? 'text-amber-300 font-semibold' : 'text-slate-400'
-                    }`}>
-                      <span className="flex items-center gap-1 min-w-0">
-                        <Sun className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                        <span className="truncate">{t.peakRowTitle}</span>
-                      </span>
-                      <span className="font-mono text-[11px] whitespace-nowrap">
-                        {currencySymbol}{formatPrice(pricing.feng.inputMiss)} / {currencySymbol}{formatPrice(pricing.feng.inputHit)} | {currencySymbol}{formatPrice(pricing.feng.output)}
-                      </span>
-                    </div>
-
-                    {/* Gu Row */}
-                    <div className={`flex flex-wrap items-center justify-between pt-2 gap-1.5 ${
-                      isGu ? 'text-emerald-300 font-semibold' : 'text-slate-400'
-                    }`}>
-                      <span className="flex items-center gap-1 min-w-0">
-                        <Moon className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                        <span className="truncate">{t.valleyRowTitle}</span>
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold flex-shrink-0">50%</span>
-                      </span>
-                      <span className="font-mono text-[11px] whitespace-nowrap">
-                        {currencySymbol}{formatPrice(pricing.gu.inputMiss)} / {currencySymbol}{formatPrice(pricing.gu.inputHit)} | {currencySymbol}{formatPrice(pricing.gu.output)}
-                      </span>
+                    <div className="font-mono font-bold text-emerald-300 text-right text-[11px] sm:text-xs">
+                      <span className="text-emerald-200">{currencySymbol}{formatPrice(pricing.gu.inputMiss)}</span>
+                      <span className="text-slate-600 mx-1">/</span>
+                      <span className="text-emerald-400">{currencySymbol}{formatPrice(pricing.gu.inputHit)}</span>
+                      <span className="text-slate-600 mx-1">/</span>
+                      <span className="text-emerald-200">{currencySymbol}{formatPrice(pricing.gu.output)}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Footer Note */}
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
-                <span className="truncate">{t.cacheNotice}</span>
-                <span className="font-mono text-slate-400 whitespace-nowrap">{t.maxOutput}: {model.maxOutput}</span>
+              {/* 4. Bottom Specs Footer */}
+              <div className="mt-4 pt-3 flex items-center justify-between text-[11px] text-slate-400">
+                <span className="flex items-center gap-1 text-slate-400 truncate">
+                  <Database className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                  <span className="truncate">{t.cacheNotice}</span>
+                </span>
+                <span className="font-mono text-slate-300 whitespace-nowrap pl-2">
+                  {t.maxOutput}: {model.maxOutput}
+                </span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Interactive Token Cost & Savings Calculator */}
+      {/* Interactive API Call Cost Calculator (Accordion Drawer) */}
       {showCalculator && (
-        <div className="mt-6 p-6 rounded-3xl bg-slate-900/90 backdrop-blur-xl border border-indigo-500/30 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-200">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-indigo-400" />
-              <h4 className="text-base font-bold text-white">
-                {t.calcHeaderTitle}
-              </h4>
+        <div className="mt-8 rounded-3xl p-6 sm:p-8 bg-slate-900/95 shadow-2xl backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="flex items-center justify-between mb-6 pb-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-indigo-400 shadow-sm">
+                <Calculator className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-lg sm:text-xl font-black text-white">
+                  {t.calcTitle}
+                </h4>
+                <p className="text-xs text-slate-400">
+                  {t.calcDesc}
+                </p>
+              </div>
             </div>
-            <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
-              {t.calcHeaderSub}
-            </span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left 7 cols: Controls */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Calculator Controls (7 Cols) */}
             <div className="lg:col-span-7 space-y-4">
-              {/* Select Model */}
+              {/* Target Model Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {t.calcSelectModel}
+                <label className="block text-xs font-bold text-slate-300 mb-2">
+                  {t.calcModelSelect}
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {DEEPSEEK_MODELS.map((m) => (
                     <button
                       key={m.modelId}
                       onClick={() => setCalcModel(m.modelId)}
-                      className={`p-2.5 rounded-xl text-left border text-xs font-semibold transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-2xl text-left text-xs transition-all cursor-pointer ${
                         calcModel === m.modelId
-                          ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                          ? 'bg-indigo-600/30 text-indigo-200 shadow-md font-bold'
+                          : 'bg-slate-950/60 text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      <div className="text-white font-bold">{m.modelName}</div>
-                      <div className="text-[10px] text-slate-400">{m.modelId}</div>
+                      <div className="text-white font-bold truncate">{m.modelName}</div>
+                      <div className="text-[10px] text-slate-500 font-mono truncate">{m.modelId}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Input Tokens Slider & Input */}
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-300 font-medium">{t.calcInputLabel}</span>
-                  <span className="font-mono text-indigo-400 font-bold">
+              <div className="p-4 rounded-2xl bg-slate-950/60 shadow-inner">
+                <div className="flex justify-between items-center text-xs mb-2">
+                  <span className="text-slate-300 font-bold">{t.calcInputLabel}</span>
+                  <span className="font-mono text-indigo-400 font-extrabold text-sm px-2.5 py-0.5 rounded-lg bg-indigo-950/80 shadow-sm">
                     {(calcInputTokens / 1000).toLocaleString()}K Tokens
                   </span>
                 </div>
@@ -405,7 +523,7 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
                   onChange={(e) => setCalcInputTokens(Number(e.target.value))}
                   className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5">
                   <span>10K</span>
                   <span>1M</span>
                   <span>3M</span>
@@ -414,10 +532,10 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
               </div>
 
               {/* Output Tokens Slider */}
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-300 font-medium">{t.calcOutputLabel}</span>
-                  <span className="font-mono text-indigo-400 font-bold">
+              <div className="p-4 rounded-2xl bg-slate-950/60 shadow-inner">
+                <div className="flex justify-between items-center text-xs mb-2">
+                  <span className="text-slate-300 font-bold">{t.calcOutputLabel}</span>
+                  <span className="font-mono text-indigo-400 font-extrabold text-sm px-2.5 py-0.5 rounded-lg bg-indigo-950/80 shadow-sm">
                     {(calcOutputTokens / 1000).toLocaleString()}K Tokens
                   </span>
                 </div>
@@ -430,7 +548,7 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
                   onChange={(e) => setCalcOutputTokens(Number(e.target.value))}
                   className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5">
                   <span>1K</span>
                   <span>200K</span>
                   <span>500K</span>
@@ -439,10 +557,12 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
               </div>
 
               {/* KV Cache Hit Rate Slider */}
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-300 font-medium">{t.calcCacheLabel}</span>
-                  <span className="font-mono text-emerald-400 font-bold">{calcCacheHitRate}%</span>
+              <div className="p-4 rounded-2xl bg-slate-950/60 shadow-inner">
+                <div className="flex justify-between items-center text-xs mb-2">
+                  <span className="text-slate-300 font-bold">{t.calcCacheLabel}</span>
+                  <span className="font-mono text-emerald-400 font-extrabold text-sm px-2.5 py-0.5 rounded-lg bg-emerald-950/80 shadow-sm">
+                    {calcCacheHitRate}%
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -453,56 +573,59 @@ export const TokenPriceBoard: React.FC<TokenPriceBoardProps> = ({
                   onChange={(e) => setCalcCacheHitRate(Number(e.target.value))}
                   className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
-                  <span>0%</span>
+                <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1.5">
+                  <span>0% ({t.noCache})</span>
                   <span>50%</span>
-                  <span>100%</span>
+                  <span>100% ({t.fullHit})</span>
                 </div>
               </div>
             </div>
 
-            {/* Right 5 cols: Comparison Result */}
-            <div className="lg:col-span-5 flex flex-col justify-between p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
-              <div>
-                <div className="text-xs font-semibold text-slate-400 mb-3">{t.calcResultTitle} ({currencySymbol} {currency.toUpperCase()})</div>
-                
-                {/* Feng cost box */}
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 mb-2.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-amber-400 font-semibold flex items-center gap-1">
-                      <Sun className="w-3 h-3" />
-                      {t.peakRowTitle}
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">09-12h / 14-18h</div>
-                  </div>
-                  <div className="font-mono text-lg font-bold text-slate-200">
-                    {currencySymbol}{totalFengCost.toFixed(4)}
-                  </div>
-                </div>
+            {/* Calculation Output Results (5 Cols) */}
+            <div className="lg:col-span-5 rounded-2xl bg-slate-950/90 shadow-xl p-5 space-y-4">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {t.calcResultSummary}
+              </div>
 
-                {/* Gu cost box */}
-                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 mb-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-emerald-300 font-bold flex items-center gap-1">
-                      <Moon className="w-3 h-3 text-emerald-400" />
-                      {t.valleyRowTitle}
-                    </div>
-                    <div className="text-[10px] text-emerald-400/80 mt-0.5">{language === 'zh' ? '午间/夜间/周末全天' : 'Off-peak / Weekend'}</div>
-                  </div>
-                  <div className="font-mono text-lg font-black text-emerald-300">
-                    {currencySymbol}{totalGuCost.toFixed(4)}
-                  </div>
+              {/* Peak Period Estimation */}
+              <div className="p-4 rounded-2xl bg-slate-900/90 shadow-md">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    {t.peakTotalCost}
+                  </span>
+                  <span className="text-xs font-mono text-slate-400">100% {t.standardRate}</span>
+                </div>
+                <div className="font-mono text-2xl sm:text-3xl font-black text-white mt-1">
+                  {currencySymbol}{totalFengCost.toFixed(3)}
+                </div>
+              </div>
+
+              {/* Valley Period Estimation */}
+              <div className="p-4 rounded-2xl bg-emerald-950/30 shadow-[0_10px_30px_-8px_rgba(16,185,129,0.3)]">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Moon className="w-4 h-4 text-emerald-400" />
+                    {t.valleyTotalCost}
+                  </span>
+                  <span className="text-xs font-mono text-emerald-300 font-bold px-2.5 py-0.5 rounded-lg bg-emerald-900/60 shadow-sm">
+                    50% {t.discountRate}
+                  </span>
+                </div>
+                <div className="font-mono text-2xl sm:text-3xl font-black text-emerald-400 mt-1">
+                  {currencySymbol}{totalGuCost.toFixed(3)}
                 </div>
               </div>
 
               {/* Savings Highlight */}
-              <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-950/60 to-purple-950/60 border border-indigo-500/40 text-center">
-                <div className="text-[11px] text-indigo-300 font-medium">{t.calcSavingsTitle}</div>
-                <div className="font-mono text-xl sm:text-2xl font-black text-emerald-400 my-1">
-                  {currencySymbol}{moneySaved.toFixed(4)} ({t.calcSavingsPercent})
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 to-purple-950/60 shadow-md flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-indigo-300 font-black">{t.directSavings}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{t.batchTip}</div>
                 </div>
-                <div className="text-[10px] text-slate-400">
-                  {isGu ? t.calcGuActiveNow : t.calcFengAdvice}
+                <div className="font-mono text-xl sm:text-2xl font-black text-indigo-300">
+                  {currencySymbol}{moneySaved.toFixed(3)}
+                  <span className="text-xs text-emerald-400 ml-1 font-sans font-bold">(-50%)</span>
                 </div>
               </div>
             </div>

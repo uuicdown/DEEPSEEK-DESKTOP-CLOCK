@@ -171,7 +171,7 @@ export default function App() {
           />
 
           {/* Footer info */}
-          <footer className="w-full mt-10 py-4 border-t border-slate-800/60 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <footer className="w-full mt-10 py-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div>
               <span>{t.footerNote}</span>
             </div>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ClockTheme, Language, PhaseInfo, TimezoneOption } from '../types';
 import { TRANSLATIONS } from '../i18n/translations';
+import { isDaytimeInZone } from '../utils/timeUtils';
 
 interface LiangStatusCardProps {
   phaseInfo: PhaseInfo;
@@ -70,6 +71,9 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
   const seg5Dn = getSegmentDayNight(21.0, 'gu');
 
   const isAllDayGu = phaseInfo.isAllDayGu;
+
+  // Current daytime / nighttime in the active timezone (06:00 - 18:00 is daytime)
+  const isCurrentDaytime = isDaytimeInZone(new Date(), currentTz);
 
   // Single clean continuous 24-Hour Timeline Segments (UTC+8):
   const segments = isAllDayGu
@@ -157,12 +161,12 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
 
   return (
     <section className="relative w-full mb-6">
-      {/* Main Status Card */}
+      {/* Main Status Card - Frameless Ambient Container */}
       <div 
-        className={`relative overflow-hidden rounded-3xl p-6 sm:p-8 border transition-all duration-300 ${
+        className={`relative overflow-hidden rounded-3xl p-6 sm:p-8 transition-all duration-300 ${
           isGu 
-            ? 'bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-cyan-950/40 border-emerald-500/40 shadow-[0_0_40px_-15px_rgba(16,185,129,0.3)]'
-            : 'bg-gradient-to-br from-amber-950/30 via-slate-900/90 to-orange-950/30 border-amber-500/40 shadow-[0_0_40px_-15px_rgba(245,158,11,0.3)]'
+            ? 'bg-gradient-to-br from-emerald-950/40 via-slate-900/90 to-cyan-950/40 shadow-[0_15px_50px_-15px_rgba(16,185,129,0.3)]'
+            : 'bg-gradient-to-br from-amber-950/30 via-slate-900/90 to-orange-950/30 shadow-[0_15px_50px_-15px_rgba(245,158,11,0.3)]'
         }`}
       >
         {/* Ambient Glow */}
@@ -174,35 +178,35 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
           {/* Left: Avatar & Character Status */}
           <div className="flex items-center gap-5 sm:gap-6">
             <div className={`relative flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-0.5 shadow-xl flex items-center justify-center ${
-              isGu 
-                ? 'bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400' 
-                : 'bg-gradient-to-tr from-amber-500 via-orange-400 to-yellow-300'
+              isCurrentDaytime
+                ? 'bg-gradient-to-tr from-amber-500 via-orange-400 to-yellow-300'
+                : 'bg-gradient-to-tr from-indigo-600 via-blue-500 to-purple-500'
             }`}>
-              <div className="w-full h-full rounded-[22px] bg-slate-950 flex flex-col items-center justify-center p-2 text-center">
-                {isGu ? (
+              <div className="w-full h-full rounded-[22px] bg-slate-950 flex flex-col items-center justify-center p-1.5 text-center shadow-inner">
+                {isCurrentDaytime ? (
                   <>
-                    <Moon className="w-8 h-8 text-emerald-400 mb-1 animate-pulse" />
-                    <span className="text-[10px] font-bold text-emerald-300 tracking-wider">
-                      {language === 'zh' ? '谷时 5折' : language === 'en' ? '50% Off' : 'Скидка 50%'}
+                    <Sun className="w-8 h-8 text-amber-400 mb-1 animate-spin-slow" />
+                    <span className="text-[10px] font-bold text-amber-300 tracking-wider">
+                      {language === 'zh' ? '☀️ 日间' : language === 'en' ? '☀️ Day' : '☀️ День'}
                     </span>
                   </>
                 ) : (
                   <>
-                    <Sun className="w-8 h-8 text-amber-400 mb-1 animate-spin-slow" />
-                    <span className="text-[10px] font-bold text-amber-300 tracking-wider">
-                      {language === 'zh' ? '高峰原价' : language === 'en' ? 'Standard' : 'Пик 100%'}
+                    <Moon className="w-8 h-8 text-indigo-300 mb-1 animate-pulse" />
+                    <span className="text-[10px] font-bold text-indigo-300 tracking-wider">
+                      {language === 'zh' ? '🌙 夜间' : language === 'en' ? '🌙 Night' : '🌙 Ночь'}
                     </span>
                   </>
                 )}
               </div>
 
-              {/* Status Ping */}
-              <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-950 ${
+              {/* Status Ping for Peak/Valley */}
+              <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
                 isGu ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-ping'
               }`} />
-              <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-950 ${
+              <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
                 isGu ? 'bg-emerald-400' : 'bg-amber-400'
-              }`} />
+              }`} title={isGu ? '谷时 5折' : '高峰原价'} />
             </div>
 
             {/* Title, Badge & Tagline */}
@@ -211,23 +215,23 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2">
                   <span>{phaseInfo.characterName}</span>
                 </h2>
-                <span className={`px-2.5 py-1 rounded-xl text-xs font-bold border tracking-wide uppercase ${
+                <span className={`px-2.5 py-1 rounded-xl text-xs font-bold tracking-wide uppercase shadow-sm ${
                   isGu
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-amber-500/20 text-amber-300'
                 }`}>
                   {phaseInfo.phaseName}
                 </span>
-                <span className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700">
+                <span className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded-lg bg-slate-800/80 shadow-sm">
                   {phaseInfo.beijingWeekdayName}
                 </span>
                 {phaseInfo.isHoliday && (
-                  <span className="text-xs font-bold text-amber-300 px-2 py-0.5 rounded-lg bg-amber-950/70 border border-amber-600/50">
+                  <span className="text-xs font-bold text-amber-300 px-2.5 py-0.5 rounded-lg bg-amber-950/80 shadow-sm">
                     {phaseInfo.holidayName || '法定节假日'}
                   </span>
                 )}
                 {phaseInfo.isWeekend && !phaseInfo.isHoliday && (
-                  <span className="text-xs font-bold text-emerald-300 px-2 py-0.5 rounded-lg bg-emerald-950/70 border border-emerald-600/50">
+                  <span className="text-xs font-bold text-emerald-300 px-2.5 py-0.5 rounded-lg bg-emerald-950/80 shadow-sm">
                     {language === 'zh' ? '周末双休' : language === 'en' ? 'Weekend' : 'Выходной'}
                   </span>
                 )}
@@ -248,14 +252,14 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
           </div>
 
           {/* Right: Countdown Widget */}
-          <div className="w-full lg:w-auto flex flex-col items-start lg:items-end justify-center pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800/80">
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/90 w-full lg:min-w-[280px]">
+          <div className="w-full lg:w-auto flex flex-col items-start lg:items-end justify-center pt-2 lg:pt-0">
+            <div className="p-4 rounded-2xl bg-slate-950/70 shadow-xl w-full lg:min-w-[280px]">
               <div className="flex items-center justify-between gap-2 text-xs text-slate-400 mb-1.5">
                 <span className="flex items-center gap-1.5 font-medium min-w-0 flex-1 truncate pr-1">
                   <Timer className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <span className="truncate">{t.targetNext}：{phaseInfo.nextCharacterName}</span>
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 flex-shrink-0">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 flex-shrink-0">
                   {t.countdownLabel}
                 </span>
               </div>
@@ -275,7 +279,7 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
         </div>
 
         {/* Single 24-Hour Visual Timeline */}
-        <div className="mt-8 pt-6 border-t border-slate-800/80">
+        <div className="mt-8 pt-4">
           {/* Header */}
           <div className="flex items-center justify-between text-xs text-slate-300 mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2">
@@ -305,7 +309,7 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
             >
               {/* Floating current time tag */}
               <div 
-                className={`absolute -top-7 ${tagTranslate} whitespace-nowrap bg-blue-600 text-white font-mono text-[10px] font-black px-2 py-0.5 rounded-md shadow-lg border border-blue-400 flex items-center gap-1 z-40`}
+                className={`absolute -top-7 ${tagTranslate} whitespace-nowrap bg-blue-600 text-white font-mono text-[10px] font-black px-2 py-0.5 rounded-md shadow-lg flex items-center gap-1 z-40`}
               >
                 <span>{language === 'zh' ? '北京' : language === 'en' ? 'Beijing' : 'Пекин'} {phaseInfo.beijingTimeString}</span>
                 <span className="text-[9px] px-1 rounded bg-blue-800 text-blue-200">
@@ -317,23 +321,22 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
               <div className="absolute top-7 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-blue-400"></div>
             </div>
 
-            {/* Single Continuous 24-Hour Bar */}
-            <div className="relative w-full h-12 rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner">
+            {/* Single Continuous 24-Hour Bar - Frameless & Integrated */}
+            <div className="relative w-full h-12 rounded-2xl bg-slate-950 overflow-hidden flex items-center shadow-inner">
               {segments.map((seg) => {
                 const isFengType = seg.type === 'feng';
-                const isNarrow = seg.widthPercent < 15;
 
                 return (
                   <div
                     key={seg.id}
                     style={{ width: `${seg.widthPercent}%` }}
-                    className={`h-full relative flex flex-col justify-center items-center px-0.5 sm:px-1 border-r border-slate-950/80 transition-all duration-200 overflow-hidden ${
+                    className={`h-full relative flex flex-col justify-center items-center px-0.5 sm:px-1 transition-all duration-200 overflow-hidden ${
                       isFengType
                         ? seg.isActive
-                          ? 'bg-amber-600/40 ring-2 ring-inset ring-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                          ? 'bg-amber-600/50 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
                           : 'bg-amber-950/40'
                         : seg.isActive
-                          ? 'bg-emerald-600/40 ring-2 ring-inset ring-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                          ? 'bg-emerald-600/50 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
                           : 'bg-emerald-950/40'
                     }`}
                   >
@@ -397,7 +400,7 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
           </div>
 
           {/* Collapsible Pricing Rule & Best Practice Guide */}
-          <div className="mt-3 pt-3 border-t border-slate-800/50">
+          <div className="mt-3 pt-2">
             <button
               id="toggle-meme-info-button"
               onClick={() => setShowMemeInfo(!showMemeInfo)}
@@ -409,13 +412,13 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
             </button>
 
             {showMemeInfo && (
-              <div className="mt-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-2.5 animate-in fade-in duration-200">
+              <div className="mt-3 p-4 rounded-2xl bg-slate-950/80 text-xs text-slate-300 space-y-2.5 shadow-xl animate-in fade-in duration-200">
                 <div className="font-semibold text-blue-300 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
                   {t.ruleGuideTitle}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 space-y-1">
+                  <div className="p-3 rounded-xl bg-amber-950/40 text-amber-200 space-y-1 shadow-sm">
                     <p className="font-bold flex items-center gap-1 text-amber-300">
                       <Sun className="w-3.5 h-3.5" /> {t.rulePeakTitle}
                     </p>
@@ -423,7 +426,7 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                       {t.rulePeakDesc}
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-200 space-y-1">
+                  <div className="p-3 rounded-xl bg-emerald-950/40 text-emerald-200 space-y-1 shadow-sm">
                     <p className="font-bold flex items-center gap-1 text-emerald-300">
                       <Moon className="w-3.5 h-3.5" /> {t.ruleValleyTitle}
                     </p>
@@ -432,7 +435,7 @@ export const LiangStatusCard: React.FC<LiangStatusCardProps> = ({
                     </p>
                   </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-blue-200 flex items-center gap-2 text-[11px]">
+                <div className="p-2.5 rounded-xl bg-blue-950/50 text-blue-200 flex items-center gap-2 text-[11px] shadow-sm">
                   <TrendingDown className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   <span><strong>{t.ruleBestPractice}</strong></span>
                 </div>
